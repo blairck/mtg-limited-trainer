@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "mtg-limited-trainer"
+version = "0.1.0"
+description = "Magic: The Gathering Limited Trainer"
+authors = ["Your Name <your.email@example.com>"]
+packages = [{include = "src"}]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+termcolor = "^2.4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+black = "^25.1.0"
+pre-commit = "^4.2.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

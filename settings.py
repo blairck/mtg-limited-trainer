@@ -1,11 +1,10 @@
-# The Magic: The Gathering set code to use for card ratings and data
-# This determines which set's card rating files will be loaded from the resources/sets/ directory
-magic_set = "fin"
+# DEPRECATED: This file is deprecated.
+# Please use modules/config.py for configuration settings.
+# This file is kept for backward compatibility only.
 
-# Number of days after which card rating data is considered stale
-# Card rating files older than this many days will be considered outdated
-stale_data_cutoff_days = 5
+from src.config import MAGIC_SET, STALE_DATA_CUTOFF_DAYS, ADVANCE_THRESHOLD
 
-# Threshold value for advancing to the next pack
-# If the user's score is below this threshold, they will not advance to the next pack
-advance_threshold = 4
+# Legacy variable names for backward compatibility
+magic_set = MAGIC_SET
+stale_data_cutoff_days = STALE_DATA_CUTOFF_DAYS
+advance_threshold = ADVANCE_THRESHOLD
