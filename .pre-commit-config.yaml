@@ -6,3 +6,10 @@ repos:
         language_version: python3
         types: [python]
         exclude: ^\.venv/
+-   repo: local
+    hooks:
+    -   id: run-tests-modified
+        name: Run tests for modified modules
+        entry: github-scripts/run-tests-for-modified.sh
+        language: script
+        stages: [pre-commit]
