@@ -9,7 +9,7 @@ import sys
 from datetime import datetime, timedelta
 from typing import List, Dict, Set
 
-from .config import MAGIC_SET, STALE_DATA_CUTOFF_DAYS, CARD_OHWR
+from .config import STALE_DATA_CUTOFF_DAYS, CARD_OHWR
 from .display import make_clickable_link
 
 

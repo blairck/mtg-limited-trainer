@@ -27,7 +27,9 @@ def get_color_code(card_color: str) -> str:
         return "red"
     elif len(card_color) > 1:
         return "yellow"
-    return (150, 75, 0)
+    # For colorless cards or any other case, use a string color name
+    # that termcolor supports instead of an RGB tuple
+    return "magenta"
 
 
 def get_card_url(card_name: str) -> str:
