@@ -8,4 +8,4 @@ stale_data_cutoff_days = 5
 
 # Threshold value for advancing to the next pack
 # If the user's score is below this threshold, they will not advance to the next pack
-advance_threshold = 5
+advance_threshold = 4

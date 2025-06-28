@@ -24,6 +24,11 @@ cardNGIH = "# GIH"
 cardGIHWR = "GIH WR"
 cardOHWR = "OH WR"
 
+
+def make_clickable_link(url, text="link"):
+    return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
+
+
 def find_most_recent_csv(set_name):
     """Find the most recent card-ratings CSV file for the given set."""
     pattern = f"resources/sets/{set_name}/card-ratings-*.csv"
@@ -39,13 +44,17 @@ def find_most_recent_csv(set_name):
     try:
         # Extract date from filename like 'card-ratings-2025-06-18.csv'
         date_str = filename.replace('card-ratings-', '').replace('.csv', '')
-        file_date = datetime.strptime(date_str, '%Y-%m-%d')
-        current_date = datetime.now()
+        file_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        current_date = datetime.now().date()
         
-        if current_date - file_date > timedelta(days=stale_data_cutoff_days):
+        if (current_date - file_date) > timedelta(days=stale_data_cutoff_days):
             print(
                 f"Error: The most recent data file is from {file_date.strftime('%Y-%m-%d')}, "
                 f"which is more than {stale_data_cutoff_days} days old."
+                f"\nGo to {make_clickable_link(
+                    f'https://www.17lands.com/card_data?expansion={set_name}&format=PremierDraft&start=2025-06-10&view=table&columns=opening',
+                    "17lands.com")} "
+                f"to retrieve the latest data file for {set_name}."
             )
             print(f"Please update the data files in resources/sets/{set_name}/")
             sys.exit(1)
@@ -90,10 +99,10 @@ with open(csv_file_path, encoding='utf-8-sig') as csvfile:
 cards = [card for card in cards if card[cardOHWR] != ""]
 commonCards = [i for i in cards if i[cardRarity] == "C"]
 uncommonCards = [i for i in cards if i[cardRarity] == "U"]
-rareCards = [i for i in cards if i[cardRarity] == "R"]
-mythicCards = [i for i in cards if i[cardRarity] == "M"]
+#rareCards = [i for i in cards if i[cardRarity] == "R"]
+#mythicCards = [i for i in cards if i[cardRarity] == "M"]
 
-def drawPack(common, uncommon, rare, mythic):
+def drawPack(common, uncommon, exclude=None):
     result = []
     seen = set()
     shuffle(common)
@@ -102,7 +111,7 @@ def drawPack(common, uncommon, rare, mythic):
     # Add up to 10 unique commons
     for card in common:
         card_id = card.get('Name')
-        if card_id not in seen:
+        if card_id not in seen and (exclude is None or card_id not in exclude):
             result.append(card)
             seen.add(card_id)
         if len(result) == 10:
@@ -111,7 +120,7 @@ def drawPack(common, uncommon, rare, mythic):
     # Add up to 5 unique uncommons (not already in result)
     for card in uncommon:
         card_id = card.get('Name')
-        if card_id not in seen:
+        if card_id not in seen and (exclude is None or card_id not in exclude):
             result.append(card)
             seen.add(card_id)
         if len(result) == 15:
@@ -123,9 +132,6 @@ def get_card_url(card_name):
     # Scryfall search URL, spaces replaced with '+'
     return f"https://scryfall.com/search?q={card_name.replace(' ', '+')}"
 
-
-def make_clickable_link(url, text="link"):
-    return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
 
 def format_card_line(card, show_percent=False):
     """
@@ -231,13 +237,37 @@ def print_pick_summary(pick_results, packCards):
         else:
             print(f"Pick {pick_num}: Invalid selection")
 
+
+def load_exclude_list(set_name):
+    """Load the exclude list from exclude.csv if it exists."""
+    exclude_file_path = f"resources/sets/{set_name}/exclude.csv"
+    exclude_list = set()
+    
+    if os.path.exists(exclude_file_path):
+        try:
+            with open(exclude_file_path, encoding='utf-8-sig') as csvfile:
+                csvreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+                first = True
+                for row in csvreader:
+                    if first:
+                        first = False  # Skip header row
+                    else:
+                        if row and len(row) > 0:  # Check if row is not empty
+                            exclude_list.add(row[0])  # Add card name to exclude set
+        except Exception as e:
+            print(f"Warning: Could not load exclude file {exclude_file_path}: {e}")
+    
+    return exclude_list
+
+
 def main():
     print_intro()
     overall_score = 0
     pack = 0
+    excludeCards=load_exclude_list(magic_set)
     while True:
         cards_to_remove = get_cards_to_remove(pack)
-        packCards = drawPack(commonCards, uncommonCards, rareCards, mythicCards)
+        packCards = drawPack(commonCards, uncommonCards, excludeCards)
         convert_ohwr_to_float(packCards)
         packCards = remove_top_n_by_winrate(packCards, cards_to_remove)
         shuffle(packCards)
@@ -251,7 +281,7 @@ def main():
         overall_score += user_score
         pack += 1
         if user_score < advance_threshold:
-            print("You did not match all 5 cards. Game over.")
+            print(f"You did not match {advance_threshold} of the cards. Game over.")
             break
         if pack > 2:
             break
