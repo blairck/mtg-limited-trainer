@@ -9,15 +9,17 @@ The codebase has been refactored into a modular structure for better organizatio
 ```
 mtg-limited-trainer/
 ├── main.py                 # Main application entry point
+├── main_v2.py              # Multiple-choice rating quiz entry point
 ├── settings.py             # Legacy settings file (deprecated)
 ├── pyproject.toml          # Poetry configuration and dependencies
 ├── src/                    # Core application modules
 │   ├── __init__.py
-│   ├── config.py          # Configuration constants and settings
-│   ├── data.py            # Data loading and validation utilities
-│   ├── cards.py           # Card operations and pack generation
-│   ├── game_logic.py      # Game scoring and evaluation logic
-│   └── display.py         # UI formatting and user interaction
+│   ├── config.py           # Configuration constants and settings
+│   ├── data.py             # Data loading and validation utilities
+│   ├── cards.py            # Card operations and pack generation
+│   ├── game_logic.py       # Game scoring and evaluation logic
+│   ├── display.py          # UI formatting and user interaction
+│   └── quiz.py             # Quiz generation and orchestration
 ├── resources/              # Card data files
 │   └── sets/
 │       ├── fin/           # Foundations data

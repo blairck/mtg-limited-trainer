@@ -10,15 +10,21 @@ from src.data import (
 from src.config import CARD_OHWR
 
 
-def test_find_most_recent_csv():
-    # Should find the most recent CSV in resources/sets/fin
+def test_find_most_recent_csv(monkeypatch):
+    # Mock glob.glob to return a controlled list of CSV files
+    mock_files = [
+        "resources/sets/fin/card-ratings-2025-06-22.csv",
+        "resources/sets/fin/card-ratings-2025-06-23.csv",
+        "resources/sets/fin/card-ratings-2025-06-24.csv",
+    ]
+    monkeypatch.setattr(glob, "glob", lambda _: mock_files)
     path = find_most_recent_csv("fin")
-    assert path.endswith("resources/sets/fin/card-ratings-2025-06-24.csv")
+    assert path.endswith("card-ratings-2025-06-24.csv")
 
 
 def test_find_most_recent_csv_no_files(monkeypatch):
     # Simulate no files found
-    monkeypatch.setattr(glob, "glob", lambda pattern: [])
+    monkeypatch.setattr(glob, "glob", lambda _: [])
     with pytest.raises(FileNotFoundError):
         find_most_recent_csv("unknown")
 

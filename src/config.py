@@ -27,3 +27,7 @@ COMMONS_PER_PACK = 10
 UNCOMMONS_PER_PACK = 5
 PICKS_PER_PACK = 5
 TOTAL_PACKS = 3
+
+# Quiz configuration
+QUIZ_RARITIES = ["C", "U"]  # Default rarities to include in quiz
+QUIZ_RATING_KEY = CARD_OHWR  # Default rating field to quiz on
