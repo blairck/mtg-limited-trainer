@@ -4,7 +4,7 @@ Game logic for scoring, evaluation, and game flow.
 
 from typing import List, Dict, Tuple
 
-from .config import CARD_NAME, PICKS_PER_PACK, ADVANCE_THRESHOLD
+from config import CARD_NAME, PICKS_PER_PACK, ADVANCE_THRESHOLD
 
 
 def get_cards_to_remove(pack_number: int) -> int:

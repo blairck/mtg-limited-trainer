@@ -6,7 +6,7 @@ from src.display import (
     get_card_url,
     format_card_line,
 )
-from src.config import CARD_NAME, CARD_COLOR, CARD_RARITY, CARD_OHWR
+from config import CARD_NAME, CARD_COLOR, CARD_RARITY, CARD_OHWR
 
 
 def test_make_clickable_link():

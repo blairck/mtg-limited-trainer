@@ -8,7 +8,7 @@ This entry point implements the quiz described in design.md:
 import argparse
 import random
 
-from src.config import (
+from config import (
     MAGIC_SET,
     QUIZ_RARITIES,
     QUIZ_RATING_KEY,

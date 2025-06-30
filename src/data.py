@@ -9,7 +9,7 @@ import sys
 from datetime import datetime, timedelta
 from typing import List, Dict, Set
 
-from .config import STALE_DATA_CUTOFF_DAYS, CARD_OHWR
+from config import STALE_DATA_CUTOFF_DAYS, CARD_OHWR
 from .display import make_clickable_link
 
 
@@ -35,7 +35,7 @@ def find_most_recent_csv(set_name: str) -> str:
         current_date = datetime.now().date()
 
         clickable_link = make_clickable_link(
-            f"https://www.17lands.com/card_data?expansion={set_name}&format=PremierDraft&start=2025-06-10&view=table&columns=opening",
+            f"https://www.17lands.com/card_data?expansion={set_name}&format=PremierDraft&start=2025-06-10&view=table",
             "17lands.com",
         )
 

@@ -8,7 +8,7 @@ against optimal win rate data.
 
 from random import shuffle
 
-from src.config import MAGIC_SET, TOTAL_PACKS
+from config import MAGIC_SET, TOTAL_PACKS
 from src.data import (
     load_card_data,
     load_exclude_list,

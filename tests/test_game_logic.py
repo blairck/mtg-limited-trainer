@@ -6,7 +6,7 @@ from src.game_logic import (
     should_advance,
     calculate_max_possible_score,
 )
-from src.config import PICKS_PER_PACK, ADVANCE_THRESHOLD
+from config import PICKS_PER_PACK, ADVANCE_THRESHOLD
 
 
 def test_get_cards_to_remove():

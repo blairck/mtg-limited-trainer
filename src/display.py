@@ -5,7 +5,7 @@ Display and formatting utilities for the MTG Limited Trainer.
 from typing import Dict, List, Tuple
 from termcolor import cprint
 
-from .config import CARD_NAME, CARD_COLOR, CARD_RARITY, CARD_OHWR
+from config import CARD_NAME, CARD_COLOR, CARD_RARITY, CARD_OHWR
 
 
 def make_clickable_link(url: str, text: str = "link") -> str:

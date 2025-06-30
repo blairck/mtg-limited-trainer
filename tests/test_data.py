@@ -7,7 +7,7 @@ from src.data import (
     convert_ohwr_to_float,
     load_card_data,
 )
-from src.config import CARD_OHWR
+from config import CARD_OHWR
 
 
 def test_find_most_recent_csv(monkeypatch):
@@ -16,10 +16,11 @@ def test_find_most_recent_csv(monkeypatch):
         "resources/sets/fin/card-ratings-2025-06-22.csv",
         "resources/sets/fin/card-ratings-2025-06-23.csv",
         "resources/sets/fin/card-ratings-2025-06-24.csv",
+        "resources/sets/fin/card-ratings-2025-06-29.csv",
     ]
     monkeypatch.setattr(glob, "glob", lambda _: mock_files)
     path = find_most_recent_csv("fin")
-    assert path.endswith("card-ratings-2025-06-24.csv")
+    assert path.endswith("card-ratings-2025-06-29.csv")
 
 
 def test_find_most_recent_csv_no_files(monkeypatch):

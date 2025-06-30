@@ -5,7 +5,7 @@ Card operations including pack generation and filtering.
 from typing import List, Dict, Set, Optional
 from random import shuffle
 
-from .config import (
+from config import (
     CARD_RARITY,
     CARD_NAME,
     CARD_OHWR,

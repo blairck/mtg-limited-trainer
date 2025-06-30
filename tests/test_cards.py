@@ -6,7 +6,7 @@ from src.cards import (
     remove_top_n_by_winrate,
     get_winrate_order,
 )
-from src.config import (
+from config import (
     CARD_NAME,
     CARD_RARITY,
     CARD_OHWR,

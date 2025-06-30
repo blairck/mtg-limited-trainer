@@ -2,7 +2,7 @@
 Quiz generation and orchestration for MTG rating quiz.
 """
 import random
-from src.config import QUIZ_NUM_CHOICES
+from config import QUIZ_NUM_CHOICES
 from dataclasses import dataclass
 from typing import List, Dict
 
