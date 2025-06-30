@@ -31,3 +31,4 @@ TOTAL_PACKS = 3
 # Quiz configuration
 QUIZ_RARITIES = ["C", "U"]  # Default rarities to include in quiz
 QUIZ_RATING_KEY = CARD_OHWR  # Default rating field to quiz on
+QUIZ_NUM_CHOICES = 6  # Number of multiple-choice options in quizzes

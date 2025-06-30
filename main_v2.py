@@ -19,18 +19,25 @@ from src.config import (
 from src.data import load_card_data, load_exclude_list, convert_ohwr_to_float
 from src.cards import filter_cards_by_rarity
 from src.display import format_card_line, get_color_code, cprint
-from src.quiz import generate_questions, make_question, Question
+from src.quiz import generate_questions, Question
 
 
-def ask_question(q: Question, idx: int) -> bool:
+def ask_question(q: Question, idx: int, low_th: float, high_th: float) -> bool:
     """Display one question and return True if the user answers correctly."""
     card = q.card
     # Show question header
     cprint(f"{idx}. {format_card_line(card, False)}", get_color_code(card[CARD_COLOR]))
-    # Show options a-e
+    # Show options with color based on value
     for i, opt in enumerate(q.options):
         letter = chr(ord("a") + i)
-        print(f"  {letter}) {opt}")
+        # choose color by global tertile thresholds
+        if opt < low_th:
+            col = "red"
+        elif opt < high_th:
+            col = "yellow"
+        else:
+            col = "green"
+        cprint(f"  {letter}) {opt}", col)
 
     # Prompt until valid
     valid_letters = [chr(ord("a") + i) for i in range(len(q.options))]
@@ -88,6 +95,13 @@ def main():
     # Determine rating bounds
     values = [float(c[args.rating_key]) for c in quiz_cards]
     min_val, max_val = min(values), max(values)
+    # Compute global tertile thresholds based on overall ratings
+    sorted_vals = sorted(values)
+    n_vals = len(sorted_vals)
+    low_idx = n_vals // 3
+    high_idx = (2 * n_vals) // 3
+    low_th = sorted_vals[low_idx]
+    high_th = sorted_vals[high_idx]
 
     # Generate initial question set
     questions = generate_questions(
@@ -105,23 +119,28 @@ def main():
         print(f"\n--- Round {round_num}: {len(remaining)} question(s) ---")
         wrong = []
         for i, q in enumerate(remaining, start=1):
-            correct, chosen = ask_question(q, i)
+            correct, chosen = ask_question(q, i, low_th, high_th)
             if correct:
                 # Immediate positive feedback
                 cprint("Correct", "green")
             else:
                 # Immediate negative feedback and prepare for next round
                 cprint("Wrong", "red")
-                # Regenerate full set of options for retry to avoid missing choices
-                retry_q = make_question(
-                    q.card,
-                    args.rating_key,
-                    min_val,
-                    max_val,
-                    num_choices=len(q.options),
-                    step=step,
+                # Remove the chosen wrong option for next round
+                new_opts = q.options.copy()
+                new_opts.pop(chosen)
+                # Recompute correct indices based on remaining options
+                true_val = float(q.card[args.rating_key])
+                new_correct_indices = [
+                    i for i, opt in enumerate(new_opts) if abs(opt - true_val) < step
+                ]
+                wrong.append(
+                    Question(
+                        card=q.card,
+                        options=new_opts,
+                        correct_indices=new_correct_indices,
+                    )
                 )
-                wrong.append(retry_q)
         num = len(remaining)
         correct_count = num - len(wrong)
         print(f"You answered {correct_count}/{num} correct this round.")

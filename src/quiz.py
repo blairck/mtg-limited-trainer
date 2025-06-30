@@ -2,6 +2,7 @@
 Quiz generation and orchestration for MTG rating quiz.
 """
 import random
+from src.config import QUIZ_NUM_CHOICES
 from dataclasses import dataclass
 from typing import List, Dict
 
@@ -28,7 +29,6 @@ def make_question(
     rating_key: str,
     min_val: float,
     max_val: float,
-    num_choices: int = 5,
     step: float = 0.5,
 ) -> Question:
     """
@@ -54,7 +54,7 @@ def make_question(
     # Select wrong options excluding the true one
     others = [p for p in possible if p != true_rounded]
     # Sample up to num_choices-1 wrong options
-    wrong = random.sample(others, min(len(others), num_choices - 1))
+    wrong = random.sample(others, min(len(others), QUIZ_NUM_CHOICES - 1))
     # Build final options, always include true_rounded
     options = wrong + [true_rounded]
     random.shuffle(options)
@@ -68,7 +68,6 @@ def generate_questions(
     min_val: float,
     max_val: float,
     num_questions: int,
-    num_choices: int = 5,
     step: float = 0.5,
 ) -> List[Question]:
     """
@@ -76,6 +75,5 @@ def generate_questions(
     """
     sampled = random.sample(cards, num_questions)
     return [
-        make_question(card, rating_key, min_val, max_val, num_choices, step)
-        for card in sampled
+        make_question(card, rating_key, min_val, max_val, step=step) for card in sampled
     ]
