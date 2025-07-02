@@ -53,8 +53,20 @@ def make_question(
     possible = sorted(set(possible))
     # Select wrong options excluding the true one
     others = [p for p in possible if p != true_rounded]
-    # Sample up to num_choices-1 wrong options
-    wrong = random.sample(others, min(len(others), QUIZ_NUM_CHOICES - 1))
+    # Guarantee at least one wrong answer within one step of the correct answer
+    neighbors = [p for p in (true_rounded - step, true_rounded + step) if p in others]
+    total_wrongs = min(len(others), QUIZ_NUM_CHOICES - 1)
+    # Chance to include a neighbor within one step; otherwise sample wrongs normally
+    if neighbors and random.random() < 0.67:
+        wrong = []
+        near = random.choice(neighbors)
+        wrong.append(near)
+        remaining = total_wrongs - 1
+        if remaining > 0:
+            other_candidates = [p for p in others if p != near]
+            wrong.extend(random.sample(other_candidates, remaining))
+    else:
+        wrong = random.sample(others, total_wrongs)
     # Build final options, always include true_rounded
     options = wrong + [true_rounded]
     random.shuffle(options)

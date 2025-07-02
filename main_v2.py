@@ -7,6 +7,7 @@ This entry point implements the quiz described in design.md:
 """
 import argparse
 import random
+import time
 
 from config import (
     MAGIC_SET,
@@ -15,6 +16,7 @@ from config import (
     COMMONS_PER_PACK,
     UNCOMMONS_PER_PACK,
     CARD_COLOR,
+    QUIZ_ANSWER_DELAY,
 )
 from src.data import load_card_data, load_exclude_list, convert_ohwr_to_float
 from src.cards import filter_cards_by_rarity
@@ -27,6 +29,8 @@ def ask_question(q: Question, idx: int, low_th: float, high_th: float) -> bool:
     card = q.card
     # Show question header
     cprint(f"{idx}. {format_card_line(card, False)}", get_color_code(card[CARD_COLOR]))
+    # Pause after showing card before options
+    time.sleep(QUIZ_ANSWER_DELAY)
     # Show options with color based on value
     for i, opt in enumerate(q.options):
         letter = chr(ord("a") + i)
