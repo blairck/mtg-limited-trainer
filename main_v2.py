@@ -1,13 +1,12 @@
 """
-MTG Limited Trainer - Multiple-Choice Rating Quiz (main_v2.py)
+MTG Limited Trainer - Rating Quiz with difficulty-based segments (main_v2.py)
 
-This entry point implements the quiz described in design.md: 
-- A set of multiple-choice questions on card ratings
-- Repeats wrong questions until all are correct
+This entry point implements the quiz described in design.md:
+- A set of segment-based rating questions on card ratings
+This quiz repeats wrong questions until all are correct
 """
 import argparse
 import random
-import time
 
 from config import (
     MAGIC_SET,
@@ -16,47 +15,47 @@ from config import (
     COMMONS_PER_PACK,
     UNCOMMONS_PER_PACK,
     CARD_COLOR,
-    QUIZ_ANSWER_DELAY,
 )
 from src.data import load_card_data, load_exclude_list, convert_ohwr_to_float
 from src.cards import filter_cards_by_rarity
 from src.display import format_card_line, get_color_code, cprint
-from src.quiz import generate_questions, Question
 
 
-def ask_question(q: Question, idx: int, low_th: float, high_th: float) -> bool:
+def ask_question(
+    card: dict,
+    idx: int,
+    thresholds: list[float],
+    labels: list[str],
+    colors: list[str],
+    rating_key: str,
+) -> tuple[bool, int]:
     """Display one question and return True if the user answers correctly."""
-    card = q.card
     # Show question header
     cprint(f"{idx}. {format_card_line(card, False)}", get_color_code(card[CARD_COLOR]))
-    # Pause after showing card before options
-    time.sleep(QUIZ_ANSWER_DELAY)
-    # Show options with color based on value
-    for i, opt in enumerate(q.options):
-        letter = chr(ord("a") + i)
-        # choose color by global tertile thresholds
-        if opt < low_th:
-            col = "red"
-        elif opt < high_th:
-            col = "yellow"
-        else:
-            col = "green"
-        cprint(f"  {letter}) {opt}", col)
+    # Show options based on difficulty segments
+    for i, label in enumerate(labels):
+        cprint(f"  {i+1}) {label}", colors[i])
 
     # Prompt until valid
-    valid_letters = [chr(ord("a") + i) for i in range(len(q.options))]
+    valid = [str(i + 1) for i in range(len(labels))]
     while True:
-        ans = input(f"Your answer ({'/'.join(valid_letters)}): ").strip().lower()
-        if ans in valid_letters:
-            chosen = ord(ans) - ord("a")
-            is_correct = chosen in q.correct_indices
-            return is_correct, chosen
+        ans = input(f"Your answer ({'/'.join(valid)}): ").strip()
+        if ans in valid:
+            chosen = int(ans) - 1
+            val = float(card[rating_key])
+            # Determine correct segment
+            correct_idx = len(thresholds)
+            for i, th in enumerate(thresholds):
+                if val < th:
+                    correct_idx = i
+                    break
+            return chosen == correct_idx, chosen
         print("Invalid choice, please try again.")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run a multiple-choice rating quiz on MTG cards"
+        description="Run a rating quiz on MTG cards with adjustable difficulty ranges"
     )
     parser.add_argument(
         "--rarities",
@@ -79,12 +78,9 @@ def main():
         "--difficulty",
         choices=["easy", "medium", "hard"],
         default="medium",
-        help="Difficulty level: easy rounds to nearest 2.0, medium to nearest 1.0, hard to nearest 0.5",
+        help="Difficulty: easy=tertiles, medium=quartiles, hard=quintiles",
     )
     args = parser.parse_args()
-    # Determine rounding step based on difficulty
-    difficulty_map = {"easy": 2.0, "medium": 1.0, "hard": 0.5}
-    step = difficulty_map[args.difficulty]
 
     # Load and prepare cards
     cards = load_card_data(MAGIC_SET)
@@ -99,52 +95,69 @@ def main():
     # Determine rating bounds
     values = [float(c[args.rating_key]) for c in quiz_cards]
     min_val, max_val = min(values), max(values)
-    # Compute global tertile thresholds based on overall ratings
     sorted_vals = sorted(values)
     n_vals = len(sorted_vals)
-    low_idx = n_vals // 3
-    high_idx = (2 * n_vals) // 3
-    low_th = sorted_vals[low_idx]
-    high_th = sorted_vals[high_idx]
+    # Configure thresholds, labels, and colors for difficulty levels
+    if args.difficulty == "easy":
+        # tertiles
+        idxs = [n_vals // 3, (2 * n_vals) // 3]
+        labels = ["bad", "okay", "good"]
+        colors = ["red", "yellow", "green"]
+    elif args.difficulty == "medium":
+        # quartiles
+        idxs = [n_vals // 4, n_vals // 2, (3 * n_vals) // 4]
+        labels = ["bad", "okay", "good", "great"]
+        colors = ["red", "yellow", "green", "blue"]
+    else:
+        # hard quintiles
+        idxs = [n_vals // 5, (2 * n_vals) // 5, (3 * n_vals) // 5, (4 * n_vals) // 5]
+        labels = ["bad", "okay", "good", "great", "amazing"]
+        colors = ["red", "yellow", "green", "blue", "magenta"]
+    thresholds = [sorted_vals[i] for i in idxs]
+    # Show rating ranges
+    print(f"Rating ranges ({args.difficulty}):")
+    lower = min_val
+    for j, th in enumerate(thresholds):
+        print(f"  {j+1}) {labels[j]}: {lower:.2f} - {th:.2f}")
+        lower = th
+    # final segment
+    print(f"  {len(thresholds)+1}) {labels[-1]}: {lower:.2f} - {max_val:.2f}")
 
-    # Generate initial question set
-    questions = generate_questions(
-        quiz_cards,
-        args.rating_key,
-        min_val,
-        max_val,
-        args.num_questions,
-        step=step,
-    )
-
+    # Generate initial question set by sampling cards and attaching full option lists
+    questions = random.sample(quiz_cards, args.num_questions)
+    # Each entry: (card, thresholds, labels, colors)
+    remaining = [
+        (
+            card,
+            thresholds.copy(),
+            labels.copy(),
+            colors.copy(),
+        )
+        for card in questions
+    ]
     round_num = 1
-    remaining = questions
     while remaining:
         print(f"\n--- Round {round_num}: {len(remaining)} question(s) ---")
         wrong = []
-        for i, q in enumerate(remaining, start=1):
-            correct, chosen = ask_question(q, i, low_th, high_th)
+        for i, (card, thr, lab, col) in enumerate(remaining, start=1):
+            correct, chosen = ask_question(card, i, thr, lab, col, args.rating_key)
             if correct:
-                # Immediate positive feedback
                 cprint("Correct", "green")
             else:
-                # Immediate negative feedback and prepare for next round
                 cprint("Wrong", "red")
-                # Remove the chosen wrong option for next round
-                new_opts = q.options.copy()
-                new_opts.pop(chosen)
-                # Recompute correct indices based on remaining options
-                true_val = float(q.card[args.rating_key])
-                new_correct_indices = [
-                    i for i, opt in enumerate(new_opts) if abs(opt - true_val) < step
-                ]
-                wrong.append(
-                    Question(
-                        card=q.card,
-                        options=new_opts,
-                        correct_indices=new_correct_indices,
-                    )
-                )
+                # remove chosen wrong option for next round
+                new_thr = thr.copy()
+                new_lab = lab.copy()
+                new_col = col.copy()
+                # remove corresponding label/color and threshold
+                new_lab.pop(chosen)
+                new_col.pop(chosen)
+                if len(new_thr) > chosen:
+                    new_thr.pop(chosen)
+                else:
+                    # if removing last label, drop last threshold
+                    new_thr.pop(-1)
+                wrong.append((card, new_thr, new_lab, new_col))
         num = len(remaining)
         correct_count = num - len(wrong)
         print(f"You answered {correct_count}/{num} correct this round.")
