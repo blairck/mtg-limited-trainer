@@ -2,9 +2,11 @@
 Quiz generation and orchestration for MTG rating quiz.
 """
 import random
-from config import QUIZ_NUM_CHOICES
 from dataclasses import dataclass
 from typing import List, Dict
+
+# Default number of choices per question
+DEFAULT_NUM_CHOICES = 5
 
 
 def round_to_increment(value: float, step: float) -> float:
@@ -30,6 +32,7 @@ def make_question(
     min_val: float,
     max_val: float,
     step: float = 0.5,
+    num_choices: int = DEFAULT_NUM_CHOICES,
 ) -> Question:
     """
     Build a multiple-choice question for a single card.
@@ -55,7 +58,7 @@ def make_question(
     others = [p for p in possible if p != true_rounded]
     # Guarantee at least one wrong answer within one step of the correct answer
     neighbors = [p for p in (true_rounded - step, true_rounded + step) if p in others]
-    total_wrongs = min(len(others), QUIZ_NUM_CHOICES - 1)
+    total_wrongs = min(len(others), num_choices - 1)
     # Chance to include a neighbor within one step; otherwise sample wrongs normally
     if neighbors and random.random() < 0.67:
         wrong = []

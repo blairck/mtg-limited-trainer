@@ -9,7 +9,6 @@ The codebase has been refactored into a modular structure for better organizatio
 ```
 mtg-limited-trainer/
 ├── main.py                 # Main application entry point
-├── main_v2.py              # Multiple-choice rating quiz entry point
 ├── settings.py             # Legacy settings file (deprecated)
 ├── pyproject.toml          # Poetry configuration and dependencies
 ├── src/                    # Core application modules

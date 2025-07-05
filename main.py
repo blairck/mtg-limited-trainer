@@ -15,6 +15,7 @@ from config import (
     COMMONS_PER_PACK,
     UNCOMMONS_PER_PACK,
     CARD_COLOR,
+    CARD_RARITY,
 )
 from src.data import load_card_data, load_exclude_list, convert_ohwr_to_float
 from src.cards import filter_cards_by_rarity
@@ -91,6 +92,11 @@ def main():
     for r in args.rarities:
         quiz_cards.extend(filter_cards_by_rarity(cards, r))
     quiz_cards = [c for c in quiz_cards if c["Name"] not in exclude]
+    # Show card counts by rarity
+    print("Card counts by rarity:")
+    for r in args.rarities:
+        count = sum(1 for c in quiz_cards if c[CARD_RARITY] == r)
+        print(f"  {r}: {count}")
 
     # Determine rating bounds
     values = [float(c[args.rating_key]) for c in quiz_cards]
