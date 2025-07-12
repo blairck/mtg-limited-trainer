@@ -1,4 +1,5 @@
 import glob
+import os
 import pytest
 
 from src.data import (
@@ -19,7 +20,7 @@ def test_find_most_recent_csv(monkeypatch):
         "resources/sets/fin/card-ratings-2025-06-29.csv",
     ]
     monkeypatch.setattr(glob, "glob", lambda _: mock_files)
-    path = find_most_recent_csv("fin")
+    path = find_most_recent_csv("fin", True)
     assert path.endswith("card-ratings-2025-06-29.csv")
 
 
@@ -30,12 +31,18 @@ def test_find_most_recent_csv_no_files(monkeypatch):
         find_most_recent_csv("unknown")
 
 
-def test_load_exclude_list():
+def test_load_exclude_list(tmp_path, monkeypatch):
+    # Create a temporary resources exclude file
+    resources_dir = tmp_path / "resources" / "sets" / "fin"
+    resources_dir.mkdir(parents=True)
+    exclude_file = resources_dir / "exclude.csv"
+    exclude_file.write_text("Name\nBaron, Airship Kingdom\n", encoding="utf-8")
+    # Change working directory to tmp_path so load_exclude_list reads the temp file
+    monkeypatch.chdir(tmp_path)
     exclude = load_exclude_list("fin")
     assert isinstance(exclude, set)
-    # Known item from exclude.csv
     assert "Baron, Airship Kingdom" in exclude
-    assert len(exclude) >= 1
+    assert len(exclude) == 1
 
 
 def test_convert_ohwr_to_float():

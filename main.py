@@ -7,6 +7,8 @@ This quiz repeats wrong questions until all are correct
 """
 import argparse
 import random
+import os
+import sys
 
 from config import (
     MAGIC_SET,
@@ -82,6 +84,15 @@ def main():
         help="Difficulty: easy=tertiles, medium=quartiles, hard=quintiles",
     )
     args = parser.parse_args()
+
+    # Ensure resources directory exists
+    resources_path = os.path.join(os.getcwd(), "resources", "sets", MAGIC_SET)
+    if not os.path.isdir(resources_path):
+        print(f"Error: Resource directory '{resources_path}' not found.")
+        print(
+            "Please follow the setup instructions in README.md to download the required data files."
+        )
+        sys.exit(1)
 
     # Load and prepare cards
     cards = load_card_data(MAGIC_SET)

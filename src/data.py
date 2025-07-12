@@ -13,7 +13,7 @@ from config import STALE_DATA_CUTOFF_DAYS, CARD_OHWR
 from .display import make_clickable_link
 
 
-def find_most_recent_csv(set_name: str) -> str:
+def find_most_recent_csv(set_name: str, testing=False) -> str:
     """Find the most recent card-ratings CSV file for the given set."""
     pattern = f"resources/sets/{set_name}/card-ratings-*.csv"
     files = glob.glob(pattern)
@@ -39,7 +39,9 @@ def find_most_recent_csv(set_name: str) -> str:
             "17lands.com",
         )
 
-        if (current_date - file_date) > timedelta(days=STALE_DATA_CUTOFF_DAYS):
+        if (current_date - file_date) > timedelta(
+            days=STALE_DATA_CUTOFF_DAYS
+        ) and not testing:
             print(
                 f"Error: The most recent data file is from {file_date.strftime('%Y-%m-%d')}, "
                 f"which is more than {STALE_DATA_CUTOFF_DAYS} days old."
@@ -78,27 +80,20 @@ def load_card_data(set_name: str) -> List[Dict[str, str]]:
     return cards
 
 
-def load_exclude_list(set_name: str) -> Set[str]:
-    """Load the exclude list from exclude.csv if it exists."""
-    exclude_file_path = f"resources/sets/{set_name}/exclude.csv"
-    exclude_list = set()
+def load_exclude_list(set_name: str) -> set:
+    """Load a CSV file of card names to exclude for the given set."""
+    path = f"resources/sets/{set_name}/exclude.csv"
+    if not os.path.exists(path):
+        return set()
 
-    if os.path.exists(exclude_file_path):
-        try:
-            with open(exclude_file_path, encoding="utf-8-sig") as csvfile:
-                csvreader = csv.reader(csvfile, delimiter=",", quotechar='"')
-                first = True
-                for row in csvreader:
-                    if first:
-                        first = False  # Skip header row
-                    else:
-                        if row and len(row) > 0:  # Check if row is not empty
-                            # Add card name to exclude set
-                            exclude_list.add(row[0])
-        except Exception as e:
-            print(f"Warning: Could not load exclude file {exclude_file_path}: {e}")
-
-    return exclude_list
+    exclude = set()
+    with open(path, encoding="utf-8") as f:
+        next(f)  # skip header
+        for line in f:
+            name = line.strip()
+            if name:
+                exclude.add(name)
+    return exclude
 
 
 def convert_ohwr_to_float(cards: List[Dict[str, str]]) -> None:

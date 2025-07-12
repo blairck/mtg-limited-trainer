@@ -109,3 +109,12 @@ Modify `modules/config.py` to change:
 - Data staleness threshold (`STALE_DATA_CUTOFF_DAYS`)
 - Advancement requirements (`ADVANCE_THRESHOLD`)
 - Pack composition (`COMMONS_PER_PACK`, `UNCOMMONS_PER_PACK`)
+
+## Resources Setup
+- Remove the existing `resources/` directory (untracked)
+- Download your own card rating data from 17lands:
+  - Go to https://www.17lands.com/card_data?expansion=<set>&format=PremierDraft&view=table
+  - Save the CSV files under `resources/sets/<set>/card-ratings-YYYY-MM-DD.csv`
+  - Optionally, add an `exclude.csv` in the same folder to list cards to exclude
+
+Update the expansion code in `config.py` if needed (default is `fin`).
