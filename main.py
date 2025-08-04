@@ -19,7 +19,7 @@ from config import (
     CARD_COLOR,
     CARD_RARITY,
 )
-from src.data import load_card_data, load_exclude_list, convert_ohwr_to_float
+from src.data import load_card_data, load_exclude_list, convert_keys_to_float
 from src.cards import filter_cards_by_rarity
 from src.display import format_card_line, get_color_code, cprint
 
@@ -96,7 +96,7 @@ def main():
 
     # Load and prepare cards
     cards = load_card_data(MAGIC_SET)
-    convert_ohwr_to_float(cards)
+    convert_keys_to_float(cards)
     exclude = load_exclude_list(MAGIC_SET)
     # Filter by rarity and exclude list
     quiz_cards = []

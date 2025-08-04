@@ -4,7 +4,7 @@ Configuration settings for the MTG Limited Trainer.
 
 # The Magic: The Gathering set code to use for card ratings and data
 # This determines which set's card rating files will be loaded from the resources/sets/ directory
-MAGIC_SET = "fin"
+MAGIC_SET = "eoe"
 
 # Number of days after which card rating data is considered stale
 # Card rating files older than this many days will be considered outdated
@@ -21,6 +21,7 @@ CARD_RARITY = "Rarity"
 CARD_NGIH = "# GIH"
 CARD_GIHWR = "GIH WR"
 CARD_OHWR = "OH WR"
+CARD_PERCENT_GP = "% GP"
 
 # Pack configuration
 COMMONS_PER_PACK = 10

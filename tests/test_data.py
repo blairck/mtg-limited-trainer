@@ -5,7 +5,7 @@ import pytest
 from src.data import (
     find_most_recent_csv,
     load_exclude_list,
-    convert_ohwr_to_float,
+    convert_keys_to_float,
     load_card_data,
 )
 from config import CARD_OHWR
@@ -47,7 +47,7 @@ def test_load_exclude_list(tmp_path, monkeypatch):
 
 def test_convert_ohwr_to_float():
     cards = [{CARD_OHWR: "50%"}, {CARD_OHWR: "abc"}, {CARD_OHWR: None}]
-    convert_ohwr_to_float(cards)
+    convert_keys_to_float(cards)
     assert isinstance(cards[0][CARD_OHWR], float) and cards[0][CARD_OHWR] == 50.0
     assert cards[1][CARD_OHWR] == "abc"
     assert cards[2][CARD_OHWR] is None

@@ -9,7 +9,7 @@ import sys
 from datetime import datetime, timedelta
 from typing import List, Dict, Set
 
-from config import STALE_DATA_CUTOFF_DAYS, CARD_OHWR
+from config import QUIZ_RATING_KEY, STALE_DATA_CUTOFF_DAYS, CARD_OHWR
 from .display import make_clickable_link
 
 
@@ -76,7 +76,7 @@ def load_card_data(set_name: str) -> List[Dict[str, str]]:
                 cards.append(new_card)
 
     # Filter out cards without OH WR data
-    cards = [card for card in cards if card[CARD_OHWR] != ""]
+    cards = [card for card in cards if card[QUIZ_RATING_KEY] != ""]
     return cards
 
 
@@ -96,10 +96,10 @@ def load_exclude_list(set_name: str) -> set:
     return exclude
 
 
-def convert_ohwr_to_float(cards: List[Dict[str, str]]) -> None:
-    """Convert OH WR percentage strings to float values in place."""
+def convert_keys_to_float(cards: List[Dict[str, str]]) -> None:
+    """Convert percentage strings to float values in place."""
     for card in cards:
         try:
-            card[CARD_OHWR] = float(card[CARD_OHWR].replace("%", ""))
+            card[QUIZ_RATING_KEY] = float(card[QUIZ_RATING_KEY].replace("%", ""))
         except (AttributeError, ValueError):
             pass
