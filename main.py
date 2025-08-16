@@ -152,41 +152,57 @@ def main():
         )
         for card in questions
     ]
-    round_num = 1
-    while remaining:
-        print(f"\n--- Round {round_num}: {len(remaining)} question(s) ---")
-        wrong = []
-        for i, (card, thr, lab, col) in enumerate(remaining, start=1):
-            correct, chosen = ask_question(card, i, thr, lab, col, args.rating_key)
-            if correct:
-                cprint("Correct", "green")
-            else:
-                cprint("Wrong", "red")
-                # remove chosen wrong option for next round
-                new_thr = thr.copy()
-                new_lab = lab.copy()
-                new_col = col.copy()
-                # remove corresponding label/color and threshold
-                new_lab.pop(chosen)
-                new_col.pop(chosen)
-                if len(new_thr) > chosen:
-                    new_thr.pop(chosen)
+    original_card_list = remaining
+    while True:
+        round_num = 1
+        offer_retry = False
+        while remaining:
+            print(f"\n--- Round {round_num}: {len(remaining)} question(s) ---")
+            wrong = []
+            for i, (card, thr, lab, col) in enumerate(remaining, start=1):
+                correct, chosen = ask_question(card, i, thr, lab, col, args.rating_key)
+                if correct:
+                    cprint("Correct", "green")
                 else:
-                    # if removing last label, drop last threshold
-                    new_thr.pop(-1)
-                wrong.append((card, new_thr, new_lab, new_col))
-        num = len(remaining)
-        correct_count = num - len(wrong)
-        print(f"You answered {correct_count}/{num} correct this round.")
-        if wrong:
-            print("Repeating wrong questions...\n")
-            random.shuffle(wrong)
-            remaining = wrong
-            round_num += 1
-        else:
-            break
+                    cprint("Wrong", "red")
+                    # remove chosen wrong option for next round
+                    new_thr = thr.copy()
+                    new_lab = lab.copy()
+                    new_col = col.copy()
+                    # remove corresponding label/color and threshold
+                    new_lab.pop(chosen)
+                    new_col.pop(chosen)
+                    if len(new_thr) > chosen:
+                        new_thr.pop(chosen)
+                    else:
+                        # if removing last label, drop last threshold
+                        new_thr.pop(-1)
+                    wrong.append((card, new_thr, new_lab, new_col))
+            num = len(remaining)
+            correct_count = num - len(wrong)
+            amount_correct = 100 * correct_count / num
+            if amount_correct < 100:
+                offer_retry = True
+            print(f"You answered {amount_correct:.1f}% correct this round.")
+            if wrong:
+                print("Repeating wrong questions...\n")
+                random.shuffle(wrong)
+                remaining = wrong
+                round_num += 1
+            else:
+                break
 
-    print("\nQuiz complete! You got all questions correct.")
+        print("\nQuiz complete!")
+        if offer_retry:
+            print("You scored below 100% in round 1.")
+            retry = input("Would you like to retry the quiz? (y/n): ").strip().lower()
+            if retry == "n":
+                pass
+            else:
+                remaining = original_card_list.copy()
+                random.shuffle(remaining)
+                continue
+        break
 
 
 if __name__ == "__main__":
