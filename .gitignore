@@ -43,3 +43,4 @@ poetry.lock
 resources/
 .pytest_cache/
 local/
+.github/copilot-instructions.md
