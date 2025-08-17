@@ -1,9 +1,5 @@
 """
-MTG Limited Trainer - Rating Quiz with difficulty-based segments (main_v2.py)
-
-This entry point implements the quiz described in design.md:
-- A set of segment-based rating questions on card ratings
-This quiz repeats wrong questions until all are correct
+MTG Limited Trainer - Card Rating Quiz with difficulty selection
 """
 import argparse
 import random

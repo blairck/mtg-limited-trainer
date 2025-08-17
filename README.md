@@ -2,14 +2,48 @@
 
 This application helps train Magic: The Gathering limited format skills by presenting cards and measuring card evaluation against 17lands data.
 
+## First Time Setup
+
+- Create a new devcontainer based on `.devcontainer/devcontainer.json`. VS Code should automatically prompt this when opening the repository for the first time. 
+  - See here for more details: https://code.visualstudio.com/docs/devcontainers/create-dev-container 
+- Create `resources/` and `resources/sets/` directories
+- Create a Magic set folder with the 3-letter set code based on preference `resources/sets/<SET>/`
+- Download your own card rating data from 17lands:
+  - Go to https://www.17lands.com/card_data?expansion=<SET>&format=PremierDraft&view=table
+  - Save the CSV files under `resources/sets/<set>/card-ratings-YYYY-MM-DD.csv`
+  - Optionally, add an `exclude.csv` in the same folder to list cards to exclude
+- Update the expansion code in `config.py` to a desired Magic set (such as `fin`, `eoe`, etc).
+- See next section for usage details
+
+## Usage
+
+Run the application in the terminal as follows:
+
+```bash
+poetry run python main.py
+```
+
+The application will:
+1. Load the most recent card data for the configured set
+2. Start a new quiz with the configured difficulty
+3. Score your evaluations against the card data
+4. Provide quiz results
+
+### Configuration
+
+Modify `modules/config.py` to change:
+- Which Magic set to use (`MAGIC_SET`)
+- Data staleness threshold (`STALE_DATA_CUTOFF_DAYS`)
+- Cards in quiz (`CARDS_IN_QUIZ`)
+
 ## Project Structure
 
-The codebase has a modular structure for better organization and maintainability:
+The codebase has a modular structure for organization and maintainability:
 
 ```
 mtg-limited-trainer/
 ├── main.py                 # Main application entry point
-├── settings.py             # Legacy settings file (deprecated)
+├── config.py               # Configuration file
 ├── pyproject.toml          # Poetry configuration and dependencies
 ├── src/                    # Core application modules
 │   ├── config.py           # Configuration constants and settings
@@ -42,14 +76,13 @@ This project uses Poetry for dependency management:
 Contains all configuration constants and settings:
 - Magic set selection
 - Data staleness thresholds
-- Pack composition settings
+- Quiz composition settings
 - CSV column mappings
 
 ### `modules/data.py`
 Handles data loading and validation:
 - CSV file discovery and date validation
 - Card data loading and filtering
-- Exclude list management
 - Data format conversion utilities
 
 ### `modules/cards.py`
@@ -71,44 +104,3 @@ User interface and formatting:
 - Terminal output formatting with colors
 - Clickable link generation
 - User input handling
-- Pick summary display
-
-## Key Improvements
-
-1. **Separation of Concerns**: Each module has a specific responsibility
-2. **Type Hints**: Added type annotations for better code documentation
-3. **Constants**: Centralized configuration in `config.py`
-4. **Error Handling**: Improved error handling throughout modules
-5. **Documentation**: Added docstrings and comments
-6. **Maintainability**: Smaller, focused functions that are easier to test and modify
-
-## Usage
-
-Run the application as before:
-
-```bash
-python main.py
-```
-
-The application will:
-1. Load the most recent card data for the configured set
-2. Present 3 packs of cards for evaluation
-3. Score your picks against optimal win rate data
-4. Provide feedback on your card evaluation skills
-
-## Configuration
-
-Modify `modules/config.py` to change:
-- Which Magic set to use (`MAGIC_SET`)
-- Data staleness threshold (`STALE_DATA_CUTOFF_DAYS`)
-- Advancement requirements (`ADVANCE_THRESHOLD`)
-- Pack composition (`COMMONS_PER_PACK`, `UNCOMMONS_PER_PACK`)
-
-## Resources Setup
-- Remove the existing `resources/` directory (untracked)
-- Download your own card rating data from 17lands:
-  - Go to https://www.17lands.com/card_data?expansion=<set>&format=PremierDraft&view=table
-  - Save the CSV files under `resources/sets/<set>/card-ratings-YYYY-MM-DD.csv`
-  - Optionally, add an `exclude.csv` in the same folder to list cards to exclude
-
-Update the expansion code in `config.py` if needed (default is `fin`).
