@@ -1,4 +1,3 @@
-import pytest
 from src.quiz import (
     round_to_increment,
     round_to_half,

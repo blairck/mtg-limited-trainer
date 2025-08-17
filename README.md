@@ -1,10 +1,10 @@
-# MTG Limited Trainer - Refactored Codebase
+# MTG Limited Trainer
 
-This application helps train Magic: The Gathering limited format skills by presenting simulated card packs and evaluating card pick decisions against optimal win rate data.
+This application helps train Magic: The Gathering limited format skills by presenting cards and measuring card evaluation against 17lands data.
 
 ## Project Structure
 
-The codebase has been refactored into a modular structure for better organization and maintainability:
+The codebase has a modular structure for better organization and maintainability:
 
 ```
 mtg-limited-trainer/
@@ -12,19 +12,13 @@ mtg-limited-trainer/
 ├── settings.py             # Legacy settings file (deprecated)
 ├── pyproject.toml          # Poetry configuration and dependencies
 ├── src/                    # Core application modules
-│   ├── __init__.py
 │   ├── config.py           # Configuration constants and settings
 │   ├── data.py             # Data loading and validation utilities
 │   ├── cards.py            # Card operations and pack generation
 │   ├── game_logic.py       # Game scoring and evaluation logic
 │   ├── display.py          # UI formatting and user interaction
 │   └── quiz.py             # Quiz generation and orchestration
-├── resources/              # Card data files
-│   └── sets/
-│       ├── fin/           # Foundations data
-│       └── tdm/           # The Duskmourn House of Horror data
-└── utilities/             # Additional utility scripts
-    └── knapsack/
+├── tests/                  # Tests for application modules
 ```
 
 ## Development Setup

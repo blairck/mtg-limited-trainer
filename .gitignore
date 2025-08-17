@@ -42,3 +42,4 @@ poetry.lock
 # Resources folder
 resources/
 .pytest_cache/
+local/

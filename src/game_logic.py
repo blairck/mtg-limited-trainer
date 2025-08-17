@@ -4,12 +4,7 @@ Game logic for scoring, evaluation, and game flow.
 
 from typing import List, Dict, Tuple
 
-from config import CARD_NAME, PICKS_PER_PACK, ADVANCE_THRESHOLD
-
-
-def get_cards_to_remove(pack_number: int) -> int:
-    """Calculate how many top cards to remove based on pack number."""
-    return 0 if pack_number == 0 else pack_number * PICKS_PER_PACK
+from config import CARD_NAME
 
 
 def evaluate_picks(
@@ -41,13 +36,3 @@ def evaluate_picks(
             pick_results.append((j + 1, user_name, False, winrate_name))
 
     return user_score, pick_results
-
-
-def should_advance(score: int) -> bool:
-    """Determine if the player should advance based on their score."""
-    return score >= ADVANCE_THRESHOLD
-
-
-def calculate_max_possible_score(total_packs: int) -> int:
-    """Calculate the maximum possible score for the game."""
-    return total_packs * PICKS_PER_PACK

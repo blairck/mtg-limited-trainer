@@ -14,8 +14,7 @@ from config import (
     MAGIC_SET,
     QUIZ_RARITIES,
     QUIZ_RATING_KEY,
-    COMMONS_PER_PACK,
-    UNCOMMONS_PER_PACK,
+    CARDS_IN_QUIZ,
     CARD_COLOR,
     CARD_RARITY,
 )
@@ -74,7 +73,7 @@ def main():
     parser.add_argument(
         "--num-questions",
         type=int,
-        default=COMMONS_PER_PACK + UNCOMMONS_PER_PACK,
+        default=CARDS_IN_QUIZ,
         help="Number of questions in the quiz",
     )
     parser.add_argument(
