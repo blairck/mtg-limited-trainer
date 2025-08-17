@@ -64,6 +64,10 @@ This project uses Poetry for dependency management:
 3. To install dependencies manually: `poetry install`
 4. To activate the virtual environment: `poetry shell`
 
+### Running Tests
+
+- To run the tests: `poetry run pytest`
+
 ### Dependencies
 
 - Python 3.12+
