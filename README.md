@@ -9,7 +9,7 @@ This application helps train Magic: The Gathering limited format skills by prese
 - Create `resources/` and `resources/sets/` directories
 - Create a Magic set folder with the 3-letter set code based on preference `resources/sets/<SET>/`
 - Download your own card rating data from 17lands:
-  - Go to https://www.17lands.com/card_data?expansion=<SET>&format=PremierDraft&view=table
+  - Go to [17lands](https://www.17lands.com/) -> Analytics -> Card Data -> Table -> (select desired set)
   - Save the CSV files under `resources/sets/<set>/card-ratings-YYYY-MM-DD.csv`
   - Optionally, add an `exclude.csv` in the same folder to list cards to exclude
 - Update the expansion code in `config.py` to a desired Magic set (such as `fin`, `eoe`, etc).
