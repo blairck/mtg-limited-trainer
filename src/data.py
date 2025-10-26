@@ -35,7 +35,7 @@ def find_most_recent_csv(set_name: str, testing=False) -> str:
         current_date = datetime.now().date()
 
         clickable_link = make_clickable_link(
-            f"https://www.17lands.com/card_data?expansion={set_name}&format=PremierDraft&start=2025-06-10&view=table",
+            f"https://www.17lands.com/card_data?view=table",
             "17lands.com",
         )
 

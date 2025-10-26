@@ -9,6 +9,6 @@ git diff --cached --name-only --diff-filter=AM | grep '^src/.*\.py$' | while rea
     test_file="tests/test_${module}.py"
     if [ -f "$test_file" ]; then
         echo "Running tests for $test_file..."
-        pytest "$test_file" || exit 1
+        poetry run pytest "$test_file" || exit 1
     fi
 done
