@@ -158,21 +158,9 @@ def verify_resources():
         sys.exit(1)
 
 
-def main():
-    args = get_arguments()
-
-    verify_resources()
-
-    quiz_cards = load_and_filter_cards(args.rarities)
-
-    thresholds, labels, colors = prepare_difficulty_thresholds(
-        quiz_cards, args.rating_key, args.difficulty
-    )
-
-    print_rating_ranges(thresholds, labels, args.difficulty)
-
+def run_quiz(quiz_cards, thresholds, labels, colors, rating_key, num_questions):
     # Generate initial question set by sampling cards and attaching full option lists
-    questions = random.sample(quiz_cards, args.num_questions)
+    questions = random.sample(quiz_cards, num_questions)
     # Each entry: (card, thresholds, labels, colors)
     remaining = [
         (
@@ -191,7 +179,7 @@ def main():
             print(f"\n--- Round {round_num}: {len(remaining)} question(s) ---")
             wrong = []
             for i, (card, thr, lab, col) in enumerate(remaining, start=1):
-                correct, chosen = ask_question(card, i, thr, lab, col, args.rating_key)
+                correct, chosen = ask_question(card, i, thr, lab, col, rating_key)
                 if correct:
                     cprint("Correct", "green")
                 else:
@@ -234,6 +222,29 @@ def main():
                 random.shuffle(remaining)
                 continue
         break
+
+
+def main():
+    args = get_arguments()
+
+    verify_resources()
+
+    quiz_cards = load_and_filter_cards(args.rarities)
+
+    thresholds, labels, colors = prepare_difficulty_thresholds(
+        quiz_cards, args.rating_key, args.difficulty
+    )
+
+    print_rating_ranges(thresholds, labels, args.difficulty)
+
+    run_quiz(
+        quiz_cards,
+        thresholds,
+        labels,
+        colors,
+        args.rating_key,
+        args.num_questions,
+    )
 
 
 if __name__ == "__main__":
