@@ -9,7 +9,7 @@
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "curl -sSL https://install.python-poetry.org | python3 - && export PATH=\"$HOME/.local/bin:$PATH\" && poetry config virtualenvs.in-project true && poetry install --no-root && poetry add --group dev black pre-commit && pre-commit install",
+	"postCreateCommand": "bash .devcontainer/post-create.sh",
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
