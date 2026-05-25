@@ -412,36 +412,45 @@ def _build_signal_summary(lane_signals: list[dict]) -> str:
 
 
 def _build_lane_signals(lane_signals: list[dict], draft_id: str) -> str:
-    top10 = sorted(lane_signals, key=lambda x: x["rating"], reverse=True)[:10]
-    if not top10:
+    if not lane_signals:
         return (
             f"<section><h2>Lane Signals "
-            f"<small style='color:#90a4ae'>(pick {LANE_SIGNAL_PICK_CUTOFF}+, not taken — top 10)</small>"
+            f"<small style='color:#90a4ae'>(pick {LANE_SIGNAL_PICK_CUTOFF}+, not taken — top 5 per pack)</small>"
             f"</h2><p>(none)</p></section>\n"
         )
 
-    trs = ""
-    for s in top10:
-        color = s["color"] if s["color"] else "C"
-        css = _card_css(color)
-        pick_ref = _pick_link(draft_id, s["pack"], s["pick_num"])
-        card_a = _card_link(s["name"], s["color"])
-        trs += (
-            f"<tr>"
-            f"<td>{pick_ref}</td>"
-            f"<td>{card_a}</td>"
-            f'<td style="color:{css};font-weight:bold">{escape(color)}</td>'
-            f'<td class="wr">{escape(_fmt_rating_html(s["rating"]))}</td>'
-            f"</tr>\n"
-        )
-    return f"""\
-<section>
-<h2>Lane Signals <small style="color:#90a4ae">(pick {LANE_SIGNAL_PICK_CUTOFF}+, not taken &mdash; top 10)</small></h2>
+    pack_sections = ""
+    for pack_num in (1, 2, 3):
+        pack_signals = [s for s in lane_signals if s["pack"] == pack_num]
+        top5 = sorted(pack_signals, key=lambda x: x["rating"], reverse=True)[:5]
+        if not top5:
+            pack_sections += f'<h3 style="color:#90caf9;margin:14px 0 6px">Pack {pack_num}</h3><p style="color:#90a4ae">(none)</p>\n'
+            continue
+        trs = ""
+        for s in top5:
+            color = s["color"] if s["color"] else "C"
+            css = _card_css(color)
+            pick_ref = _pick_link(draft_id, s["pack"], s["pick_num"])
+            card_a = _card_link(s["name"], s["color"])
+            trs += (
+                f"<tr>"
+                f"<td>{pick_ref}</td>"
+                f"<td>{card_a}</td>"
+                f'<td style="color:{css};font-weight:bold">{escape(color)}</td>'
+                f'<td class="wr">{escape(_fmt_rating_html(s["rating"]))}</td>'
+                f"</tr>\n"
+            )
+        pack_sections += f"""\
+<h3 style="color:#90caf9;margin:14px 0 6px">Pack {pack_num}</h3>
 <table>
   <thead><tr><th>Pick</th><th>Card</th><th>Color</th><th>WR</th></tr></thead>
   <tbody>{trs}</tbody>
 </table>
-</section>
+"""
+    return f"""\
+<section>
+<h2>Lane Signals <small style="color:#90a4ae">(pick {LANE_SIGNAL_PICK_CUTOFF}+, not taken &mdash; top 5 per pack)</small></h2>
+{pack_sections}</section>
 """
 
 

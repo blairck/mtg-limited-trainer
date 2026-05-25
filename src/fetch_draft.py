@@ -17,7 +17,7 @@ import sys
 
 import requests
 
-from config import DRAFT_DATA_DIR
+from config import DRAFT_RAW_OUTPUT_DIR
 
 BASE_URL = "https://www.17lands.com"
 HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -125,9 +125,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--output-dir",
-        default=DRAFT_DATA_DIR,
+        default=DRAFT_RAW_OUTPUT_DIR,
         metavar="PATH",
-        help=f"Directory to save JSON files (default: {DRAFT_DATA_DIR}).",
+        help=f"Directory to save JSON files (default: {DRAFT_RAW_OUTPUT_DIR}).",
     )
     args = parser.parse_args()
 

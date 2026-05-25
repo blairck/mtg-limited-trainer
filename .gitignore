@@ -47,3 +47,6 @@ local/
 
 # Scratch work
 .dev-notes/
+
+# Analysis output
+output/

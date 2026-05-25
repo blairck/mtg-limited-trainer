@@ -25,7 +25,8 @@ QUIZ_RARITIES = ["C", "U"]  # Default rarities to include in quiz
 QUIZ_RATING_KEY = CARD_OHWR  # Default rating to quiz. CARD_OHWR/CARD_GIHWR/etc
 
 # Draft analysis
-DRAFT_DATA_DIR = "resources/drafts"
+DRAFT_RAW_OUTPUT_DIR = "output/drafts/raw"  # saved JSON files from 17Lands
+DRAFT_HTML_OUTPUT_DIR = "output/drafts/html"  # generated HTML analysis reports
 DRAFT_RATING_KEY = CARD_GIHWR
 # OH WR gap (pp) at or below which a miss is "defensible"
 PICK_DEFENSIBLE_THRESHOLD = 1.0

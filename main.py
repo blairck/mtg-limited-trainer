@@ -1,24 +1,28 @@
 """
 MTG Limited Trainer - Card Rating Quiz with difficulty selection
 """
-import argparse
-import random
-import os
-import sys
-
+from src.display import format_card_line, get_color_code, cprint
+from src.cards import filter_cards_by_rarity
+from src.data import load_card_data, load_exclude_list, convert_keys_to_float
 from config import (
     MAGIC_SET,
     QUIZ_RARITIES,
     QUIZ_RATING_KEY,
     DRAFT_RATING_KEY,
-    DRAFT_DATA_DIR,
+    DRAFT_RAW_OUTPUT_DIR,
+    DRAFT_HTML_OUTPUT_DIR,
     CARDS_IN_QUIZ,
     CARD_COLOR,
     CARD_RARITY,
 )
-from src.data import load_card_data, load_exclude_list, convert_keys_to_float
-from src.cards import filter_cards_by_rarity
-from src.display import format_card_line, get_color_code, cprint
+import argparse
+import random
+import os
+import sys
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def ask_question(
@@ -151,31 +155,15 @@ def get_arguments():
 
     # ── analyze subcommand ───────────────────────────────────────────────────
     analyze_parser = subparsers.add_parser(
-        "analyze", help="Analyze a saved 17Lands draft log"
+        "analyze", help="Fetch a 17Lands draft log and immediately analyze it"
     )
     analyze_parser.add_argument(
-        "--draft-log",
-        required=True,
-        metavar="PATH",
-        help=f"Path to a draft JSON file (e.g. {DRAFT_DATA_DIR}/<id>.json)",
-    )
-    analyze_parser.add_argument(
-        "--rating-key",
-        default=DRAFT_RATING_KEY,
-        help="Rating column to rank picks by (default: 'OH WR')",
-    )
-
-    # ── fetch subcommand ─────────────────────────────────────────────────────
-    fetch_parser = subparsers.add_parser(
-        "fetch", help="Fetch a 17Lands draft log and immediately analyze it"
-    )
-    fetch_parser.add_argument(
         "draft_ids",
         nargs="+",
         metavar="DRAFT_ID",
         help="One or more 17Lands draft IDs (from the URL).",
     )
-    fetch_parser.add_argument(
+    analyze_parser.add_argument(
         "--rating-key",
         default=DRAFT_RATING_KEY,
         help="Rating column to rank picks by (default: 'OH WR')",
@@ -267,19 +255,19 @@ def run_fetch(args) -> None:
     from src.fetch_draft import process_draft
 
     for draft_id in args.draft_ids:
-        process_draft(draft_id, DRAFT_DATA_DIR)
-        draft_log_path = os.path.join(DRAFT_DATA_DIR, f"{draft_id}.json")
+        process_draft(draft_id, DRAFT_RAW_OUTPUT_DIR)
+        draft_log_path = os.path.join(DRAFT_RAW_OUTPUT_DIR, f"{draft_id}.json")
         if os.path.exists(draft_log_path):
             analyze_args = _argparse.Namespace(
                 draft_log=draft_log_path,
                 rating_key=args.rating_key,
             )
-            run_analyze(analyze_args)
+            _run_analyze(analyze_args)
         else:
             print(f"[skip analysis] {draft_id} — no local file found")
 
 
-def run_analyze(args) -> None:
+def _run_analyze(args) -> None:
     """Load a draft log, run pick analysis, and write an HTML report."""
     from collections import Counter
 
@@ -317,8 +305,10 @@ def run_analyze(args) -> None:
         draft, evaluations, pack_summaries, lane_signals, args.rating_key
     )
 
-    os.makedirs(DRAFT_DATA_DIR, exist_ok=True)
-    output_path = os.path.join(DRAFT_DATA_DIR, f"{draft['draft_id']}_analysis.html")
+    os.makedirs(DRAFT_HTML_OUTPUT_DIR, exist_ok=True)
+    output_path = os.path.join(
+        DRAFT_HTML_OUTPUT_DIR, f"{draft['draft_id']}_analysis.html"
+    )
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(report)
 
@@ -328,6 +318,24 @@ def run_analyze(args) -> None:
     )
     print(f"Metric   : {args.rating_key}")
     print(f"Report saved to: {output_path}")
+
+    bucket = os.environ.get("S3_BUCKET_NAME")
+    if not bucket:
+        print("[s3] S3_BUCKET_NAME not set — skipping upload")
+        return
+    import boto3
+
+    s3_key = f"drafts/html/{draft['draft_id']}_analysis.html"
+    session = boto3.session.Session()
+    region = session.region_name or "us-east-1"
+    session.client("s3").upload_file(
+        output_path,
+        bucket,
+        s3_key,
+        ExtraArgs={"ContentType": "text/html"},
+    )
+    public_url = f"https://{bucket}.s3.{region}.amazonaws.com/{s3_key}"
+    print(f"[s3] Uploaded: {public_url}")
 
 
 def main():
@@ -349,8 +357,6 @@ def main():
             args.num_questions,
         )
     elif args.command == "analyze":
-        run_analyze(args)
-    elif args.command == "fetch":
         run_fetch(args)
 
 

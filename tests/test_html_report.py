@@ -216,30 +216,35 @@ def test_html_report_card_links_use_scryfall():
     assert "scryfall.com/search" in html
 
 
-def test_html_report_lane_signals_capped_at_10():
-    """Even if many signals exist, only top 10 appear in the HTML."""
-    # Manufacture 15 late-pick evaluations to generate >10 signals
+def test_html_report_lane_signals_top5_per_pack():
+    """Lane signals show top 5 per pack (up to 3 packs × 5 = 15 total)."""
+    # Manufacture late-pick evaluations across all 3 packs to generate >5 signals per pack
     many_picks = [
         {
-            "pack": 1,
+            "pack": pack_num,
             "pick": pick_num,
             "available": [
                 {"name": "Card C", "picked": True},
                 {"name": "Card A", "picked": False},
             ],
         }
-        for pick_num in range(6, 21)
+        for pack_num in (1, 2, 3)
+        for pick_num in range(6, 14)
     ]
     draft = {**DRAFT, "picks": many_picks}
     evals = [evaluate_pick(p, MOCK_RATINGS) for p in many_picks]
     pack_summaries = [summarize_pack(evals)]
     signals = find_lane_signals(evals)
-    assert len(signals) > 10, "Need >10 signals for this test to be meaningful"
+    assert len(signals) > 5, "Need >5 signals per pack for this test to be meaningful"
     html = format_analysis_html(draft, evals, pack_summaries, signals)
-    # Count 17lands links in the lane signals section — should be exactly 10
     import re
 
     lane_section = re.search(r"Lane Signals.*?</section>", html, re.DOTALL)
     assert lane_section is not None
+    # Each pack contributes at most 5 pick links → max 15 total
     links_in_section = re.findall(r"17lands\.com/draft", lane_section.group())
-    assert len(links_in_section) == 10
+    assert len(links_in_section) <= 15
+    # Verify all 3 pack subsections are present
+    assert "Pack 1" in lane_section.group()
+    assert "Pack 2" in lane_section.group()
+    assert "Pack 3" in lane_section.group()
