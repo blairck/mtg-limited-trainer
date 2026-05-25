@@ -1,7 +1,5 @@
 """Smoke tests for src/html_report.py"""
 
-import pytest
-
 from src.draft_analysis import evaluate_pick, find_lane_signals, summarize_pack
 from src.html_report import (
     format_analysis_html,

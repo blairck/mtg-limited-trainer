@@ -385,21 +385,6 @@ def summarize_draft_arc(
     }
 
 
-def find_key_decision_points(evaluations: list[dict], top_n: int = 5) -> list[dict]:
-    """Return the most consequential deviations for focused review."""
-    candidates = [e for e in evaluations if e["gap"] is not None and e["gap"] > 0.0]
-    prioritized = sorted(
-        candidates,
-        key=lambda e: (
-            -e["gap"],
-            -(1 if e["pick_num"] >= LANE_SIGNAL_PICK_CUTOFF else 0),
-            e["pack"],
-            e["pick_num"],
-        ),
-    )
-    return prioritized[:top_n]
-
-
 # ---------------------------------------------------------------------------
 # Signal and summary helpers
 # ---------------------------------------------------------------------------

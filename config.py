@@ -28,10 +28,10 @@ QUIZ_RATING_KEY = CARD_OHWR  # Default rating to quiz. CARD_OHWR/CARD_GIHWR/etc
 DRAFT_RAW_OUTPUT_DIR = "output/drafts/raw"  # saved JSON files from 17Lands
 DRAFT_HTML_OUTPUT_DIR = "output/drafts/html"  # generated HTML analysis reports
 DRAFT_RATING_KEY = CARD_GIHWR
-# OH WR gap (pp) at or below which a miss is "defensible"
+# Rating gap (pp) at or below which a miss is "defensible"
 PICK_DEFENSIBLE_THRESHOLD = 1.0
-# OH WR gap (pp) above which a miss is "costly"
+# Rating gap (pp) above which a miss is "costly"
 PICK_COSTLY_THRESHOLD = 3.0
 LANE_SIGNAL_PICK_CUTOFF = 6  # picks numbered >= this are treated as "late"
-# minimum rating (%) for a late card to count as a lane signal
+# Minimum selected rating (%) for a late card to count as a lane signal
 LANE_SIGNAL_WR_THRESHOLD = 55.0

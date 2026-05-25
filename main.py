@@ -13,7 +13,6 @@ from config import (
     DRAFT_HTML_OUTPUT_DIR,
     CARDS_IN_QUIZ,
     CARD_COLOR,
-    CARD_RARITY,
 )
 import argparse
 import random
@@ -111,18 +110,6 @@ def print_rating_ranges(thresholds, labels, difficulty):
     print(f"  {labels[-1]}: >= {thresholds[-1]:.1f}")
 
 
-def apply_threshold_rating(card, rating_key, thresholds, labels):
-    thresholdLabelMappings = []
-    for threshold, label in zip(thresholds, labels):
-        thresholdLabelMappings.append({"threshold": threshold, "label": label})
-
-    for thresholdLabel in thresholdLabelMappings:
-        if card[rating_key] < thresholdLabel["threshold"]:
-            return thresholdLabel["label"]
-
-    return labels[-1]
-
-
 def get_arguments():
     parser = argparse.ArgumentParser(description="MTG Limited Trainer")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -166,7 +153,7 @@ def get_arguments():
     analyze_parser.add_argument(
         "--rating-key",
         default=DRAFT_RATING_KEY,
-        help="Rating column to rank picks by (default: 'OH WR')",
+        help=f"Rating column to rank picks by (default: '{DRAFT_RATING_KEY}')",
     )
 
     return parser.parse_args()
@@ -185,6 +172,11 @@ def verify_resources():
 
 def run_quiz(quiz_cards, thresholds, labels, colors, rating_key, num_questions):
     # Generate initial question set by sampling cards and attaching full option lists
+    if num_questions > len(quiz_cards):
+        raise ValueError(
+            f"Requested {num_questions} quiz questions, but only "
+            f"{len(quiz_cards)} cards are available after filtering."
+        )
     questions = random.sample(quiz_cards, num_questions)
     # Each entry: (card, thresholds, labels, colors)
     remaining = [
@@ -284,7 +276,15 @@ def _run_analyze(args) -> None:
 
     draft = load_draft_log(args.draft_log)
     set_code = draft["expansion"].lower()
-    csv_path = find_most_recent_csv(set_code)
+    try:
+        csv_path = find_most_recent_csv(set_code)
+    except FileNotFoundError:
+        print(f"No ratings CSV found for set '{draft['expansion']}' ({set_code}).")
+        print(f"Expected ratings files under: {DRAFT_RAW_OUTPUT_DIR}")
+        print(
+            "Please download/fetch the set ratings data first, then rerun draft analysis."
+        )
+        return
 
     ratings = load_card_ratings_lookup(csv_path, args.rating_key)
 

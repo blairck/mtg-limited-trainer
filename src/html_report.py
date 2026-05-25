@@ -106,11 +106,6 @@ def _linkify_picks(text: str, draft_id: str) -> str:
     return re.sub(r"P(\d)P(\d{2})", _replace, text)
 
 
-def _cls_span(classification: str, text: str) -> str:
-    css = _CLASSIFICATION_CSS.get(classification, "#e0e0e0")
-    return f'<span style="color:{css}">{escape(text)}</span>'
-
-
 def _fmt_rating_html(val: Optional[float]) -> str:
     return f"{val:.1f}%" if val is not None else "N/A"
 
@@ -270,7 +265,7 @@ def _build_pick_classification(evaluations: list[dict]) -> str:
 """
 
 
-def _build_biggest_misses(evaluations: list[dict], ratings: dict, draft_id: str) -> str:
+def _build_biggest_misses(evaluations: list[dict], draft_id: str) -> str:
     misses = find_biggest_misses(evaluations)
     if not misses:
         return "<section><h2>Biggest Misses</h2><p>(none)</p></section>\n"
@@ -473,20 +468,11 @@ def format_analysis_html(
     """
     draft_id = draft["draft_id"]
 
-    # Build ratings lookup from evaluations (name → color) for miss section
-    ratings: dict[str, str] = {}
-    for ev in evaluations:
-        if ev.get("chosen_meta") and ev["chosen_meta"].get("color") is not None:
-            name = ev["chosen_meta"].get("name") or ev.get("chosen_name") or ""
-            ratings[name] = ev["chosen_meta"]["color"]
-        for card in ev.get("available_rated", []):
-            ratings[card["name"]] = card.get("color", "")
-
     body = (
         _build_header(draft, rating_key)
         + _build_overall_stats(evaluations, rating_key)
         + _build_pick_classification(evaluations)
-        + _build_biggest_misses(evaluations, ratings, draft_id)
+        + _build_biggest_misses(evaluations, draft_id)
         + _build_pack_summaries(pack_summaries)
         + _build_draft_arc(evaluations, lane_signals, draft_id)
         + _build_pool_timeline(evaluations)
