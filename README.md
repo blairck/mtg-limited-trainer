@@ -1,110 +1,150 @@
 # MTG Limited Trainer
 
-This application helps train Magic: The Gathering limited format skills by presenting cards and measuring card evaluation against 17lands data.
+MTG Limited Trainer is a command-line project for practicing limited card evaluation and reviewing completed drafts against 17Lands card-rating data.
 
-## First Time Setup
+## Setup
 
-- Create a new devcontainer based on `.devcontainer/devcontainer.json`. VS Code should automatically prompt this when opening the repository for the first time. 
-  - See here for more details: https://code.visualstudio.com/docs/devcontainers/create-dev-container 
-- Create `resources/` and `resources/sets/` directories
-- Create a Magic set folder with the 3-letter set code based on preference `resources/sets/<SET>/`
-- Download your own card rating data from 17lands:
-  - Go to [17lands](https://www.17lands.com/) -> Analytics -> Card Data -> Table -> (select desired set)
-  - Save the CSV files under `resources/sets/<set>/card-ratings-YYYY-MM-DD.csv`
-  - Optionally, add an `exclude.csv` in the same folder to list cards to exclude
-- Update the expansion code in `config.py` to a desired Magic set (such as `fin`, `eoe`, etc).
-- See next section for usage details
+This repository is designed to be set up in a devcontainer, and run locally with Poetry.
+
+1. Open the repository in VS Code and create the devcontainer from `.devcontainer/devcontainer.json` if prompted.
+2. Add 17Lands card-rating CSVs under `resources/sets/<set>/` using the naming pattern `card-ratings-YYYY-MM-DD.csv`.
+3. Optionally add `exclude.csv` in the same set folder to omit specific cards from quiz mode.
+4. Set the default expansion in `config.py` by changing `MAGIC_SET`.
+
+Example resource layout:
+
+```text
+resources/
+  sets/
+    sos/
+      card-ratings-2026-05-24.csv
+      exclude.csv
+```
 
 ## Usage
 
-Run the application in the terminal as follows:
+`main.py` exposes subcommands. Run one of these:
 
 ```bash
-poetry run python main.py
+poetry run python main.py quiz
+poetry run python main.py analyze <draft_id>
 ```
 
-The application will:
-1. Load the most recent card data for the configured set
-2. Start a new quiz with the configured difficulty
-3. Score your evaluations against the card data
-4. Provide quiz results
+### Quiz mode
 
-### Configuration
+`quiz` loads the most recent CSV for `MAGIC_SET`, filters cards by rarity, excludes any names listed in `exclude.csv`, then asks you to evaluate each card into rating bands.
 
-Modify `modules/config.py` to change:
-- Which Magic set to use (`MAGIC_SET`)
-- Data staleness threshold (`STALE_DATA_CUTOFF_DAYS`)
-- Cards in quiz (`CARDS_IN_QUIZ`)
+Common options:
+
+```bash
+poetry run python main.py quiz --difficulty easy
+poetry run python main.py quiz --difficulty hard --num-questions 20
+poetry run python main.py quiz --rarities C U R --rating-key "GIH WR"
+```
+
+Supported quiz arguments:
+
+- `--rarities`: defaults to `QUIZ_RARITIES` from `config.py`
+- `--rating-key`: defaults to `QUIZ_RATING_KEY`
+- `--num-questions`: defaults to `CARDS_IN_QUIZ`
+- `--difficulty`: `easy`, `medium`, or `hard`
+
+### Draft analysis mode
+
+`analyze` fetches one or more draft logs from 17Lands, saves the raw JSON locally, then generates an HTML report for each draft.
+
+```bash
+poetry run python main.py analyze b030c150a65c4491b98ab3b041f3f8df
+poetry run python main.py analyze <draft_id_1> <draft_id_2> --rating-key "GIH WR"
+```
+
+Outputs:
+
+- Raw draft logs: `output/drafts/raw/<draft_id>.json`
+- HTML reports: `output/drafts/html/<draft_id>_analysis.html`
+
+If `S3_BUCKET_NAME` is set in the environment, the generated HTML report is also uploaded to that bucket.
+
+For fetch-only workflows, you can also run the helper module directly:
+
+```bash
+poetry run python -m src.fetch_draft <draft_id>
+```
+
+## Configuration
+
+Most runtime settings live in `config.py`:
+
+- `MAGIC_SET`: default set code used by quiz mode
+- `STALE_DATA_CUTOFF_DAYS`: how old card-rating CSVs can be before they are treated as stale
+- `CARDS_IN_QUIZ`: default number of quiz questions
+- `QUIZ_RARITIES`: default rarities included in quiz mode
+- `QUIZ_RATING_KEY`: default metric for quiz mode
+- `DRAFT_RATING_KEY`: default metric for draft analysis
+- `DRAFT_RAW_OUTPUT_DIR`: where fetched draft JSON files are written
+- `DRAFT_HTML_OUTPUT_DIR`: where generated HTML reports are written
+- `PICK_DEFENSIBLE_THRESHOLD`, `PICK_COSTLY_THRESHOLD`: draft pick classification thresholds
+- `LANE_SIGNAL_PICK_CUTOFF`, `LANE_SIGNAL_WR_THRESHOLD`: lane-signal detection settings
+
+## Draft Report Contents
+
+Each HTML report is generated deterministically from the saved pick log plus the most recent card-ratings CSV for the draft's set.
+
+Sections currently included:
+
+- Overall Stats
+- Pick Classification
+- Biggest Misses
+- Pack Summaries
+- Draft Arc
+- Pool / Lane Timeline
+- Signal Summary by Color
+- Lane Signals
+
+The report links picks back to 17Lands and card names out to Scryfall.
+
+## Development
+
+Run the full test suite with:
+
+```bash
+poetry run pytest
+```
+
+Useful dependency and formatting commands:
+
+```bash
+poetry add <package>
+poetry shell
+./github-scripts/format_code.sh
+```
 
 ## Project Structure
 
-The codebase has a modular structure for organization and maintainability:
-
-```
+```text
 mtg-limited-trainer/
-├── main.py                 # Main application entry point
-├── config.py               # Configuration file
-├── pyproject.toml          # Poetry configuration and dependencies
-├── src/                    # Core application modules
-│   ├── config.py           # Configuration constants and settings
-│   ├── data.py             # Data loading and validation utilities
-│   ├── cards.py            # Card operations and pack generation
-│   ├── game_logic.py       # Game scoring and evaluation logic
-│   ├── display.py          # UI formatting and user interaction
-│   └── quiz.py             # Quiz generation and orchestration
-├── tests/                  # Tests for application modules
+├── main.py
+├── config.py
+├── src/
+│   ├── cards.py
+│   ├── data.py
+│   ├── display.py
+│   ├── draft_analysis.py
+│   ├── fetch_draft.py
+│   ├── game_logic.py
+│   ├── html_report.py
+│   └── quiz.py
+├── tests/
+└── resources/
 ```
 
-## Development Setup
+Module overview:
 
-This project uses Poetry for dependency management:
-
-1. The devcontainer will automatically install Poetry and all dependencies
-2. To add new dependencies: `poetry add package-name`
-3. To install dependencies manually: `poetry install`
-4. To activate the virtual environment: `poetry shell`
-
-### Running Tests
-
-- To run the tests: `poetry run pytest`
-
-### Dependencies
-
-- Python 3.12+
-- Poetry for package management
-- termcolor - Terminal text colorization
-
-## Module Descriptions
-
-### `modules/config.py`
-Contains all configuration constants and settings:
-- Magic set selection
-- Data staleness thresholds
-- Quiz composition settings
-- CSV column mappings
-
-### `modules/data.py`
-Handles data loading and validation:
-- CSV file discovery and date validation
-- Card data loading and filtering
-- Data format conversion utilities
-
-### `modules/cards.py`
-Card operations and pack generation:
-- Card filtering by rarity
-- Pack drawing with exclusion support
-- Win rate sorting and filtering
-- Card manipulation utilities
-
-### `modules/game_logic.py`
-Core game logic and scoring:
-- Pick evaluation against optimal choices
-- Score calculation and thresholds
-- Game progression logic
-- Result analysis
-
-### `modules/display.py`
-User interface and formatting:
-- Terminal output formatting with colors
-- Clickable link generation
-- User input handling
+- `main.py`: CLI entrypoint for quiz and draft analysis flows
+- `src/data.py`: card-rating CSV discovery, loading, and staleness handling
+- `src/cards.py`: rarity filtering and exclusion-aware card selection helpers
+- `src/display.py`: terminal formatting helpers for quiz mode
+- `src/draft_analysis.py`: deterministic pick evaluation and lane-signal analysis
+- `src/fetch_draft.py`: 17Lands API fetcher for draft logs
+- `src/html_report.py`: HTML report generation for analyzed drafts
+- `src/quiz.py`: reusable quiz-question generation helpers

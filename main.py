@@ -1,22 +1,27 @@
 """
 MTG Limited Trainer - Card Rating Quiz with difficulty selection
 """
+from src.display import format_card_line, get_color_code, cprint
+from src.cards import filter_cards_by_rarity
+from src.data import load_card_data, load_exclude_list, convert_keys_to_float
+from config import (
+    MAGIC_SET,
+    QUIZ_RARITIES,
+    QUIZ_RATING_KEY,
+    DRAFT_RATING_KEY,
+    DRAFT_RAW_OUTPUT_DIR,
+    DRAFT_HTML_OUTPUT_DIR,
+    CARDS_IN_QUIZ,
+    CARD_COLOR,
+)
 import argparse
 import random
 import os
 import sys
 
-from config import (
-    MAGIC_SET,
-    QUIZ_RARITIES,
-    QUIZ_RATING_KEY,
-    CARDS_IN_QUIZ,
-    CARD_COLOR,
-    CARD_RARITY,
-)
-from src.data import load_card_data, load_exclude_list, convert_keys_to_float
-from src.cards import filter_cards_by_rarity
-from src.display import format_card_line, get_color_code, cprint
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def ask_question(
@@ -51,71 +56,22 @@ def ask_question(
         print("Invalid choice, please try again.")
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Run a rating quiz on MTG cards with adjustable difficulty ranges"
-    )
-    parser.add_argument(
-        "--rarities",
-        nargs="+",
-        default=QUIZ_RARITIES,
-        help="Card rarities to include (e.g. C U)",
-    )
-    parser.add_argument(
-        "--rating-key",
-        default=QUIZ_RATING_KEY,
-        help="Rating field to quiz on (e.g. CARD_OHWR)",
-    )
-    parser.add_argument(
-        "--num-questions",
-        type=int,
-        default=CARDS_IN_QUIZ,
-        help="Number of questions in the quiz",
-    )
-    parser.add_argument(
-        "--difficulty",
-        choices=["easy", "medium", "hard"],
-        default="medium",
-        help="Difficulty: easy=tertiles, medium=quartiles, hard=quintiles",
-    )
-    args = parser.parse_args()
-
-    # Ensure resources directory exists
-    resources_path = os.path.join(os.getcwd(), "resources", "sets", MAGIC_SET)
-    if not os.path.isdir(resources_path):
-        print(f"Error: Resource directory '{resources_path}' not found.")
-        print(
-            "Please follow the setup instructions in README.md to download the required data files."
-        )
-        sys.exit(1)
-
-    # Load and prepare cards
-    cards = load_card_data(MAGIC_SET)
-    convert_keys_to_float(cards)
-    exclude = load_exclude_list(MAGIC_SET)
-    # Filter by rarity and exclude list
-    quiz_cards = []
-    for r in args.rarities:
-        quiz_cards.extend(filter_cards_by_rarity(cards, r))
-    quiz_cards = [c for c in quiz_cards if c["Name"] not in exclude]
-    # Show card counts by rarity
-    print("Card counts by rarity:")
-    for r in args.rarities:
-        count = sum(1 for c in quiz_cards if c[CARD_RARITY] == r)
-        print(f"  {r}: {count}")
-
-    # Determine rating bounds
-    values = [float(c[args.rating_key]) for c in quiz_cards]
-    min_val, max_val = min(values), max(values)
+def prepare_difficulty_thresholds(
+    quiz_cards: list[dict],
+    rating_key: str,
+    difficulty: str,
+) -> tuple[list[float], list[str], list[str]]:
+    """Determine rating bounds and configure thresholds, labels, and colors for difficulty levels."""
+    values = [float(c[rating_key]) for c in quiz_cards]
     sorted_vals = sorted(values)
     n_vals = len(sorted_vals)
-    # Configure thresholds, labels, and colors for difficulty levels
-    if args.difficulty == "easy":
+
+    if difficulty == "easy":
         # tertiles
         idxs = [n_vals // 3, (2 * n_vals) // 3]
         labels = ["bad", "okay", "good"]
         colors = ["red", "yellow", "green"]
-    elif args.difficulty == "medium":
+    elif difficulty == "medium":
         # quartiles
         idxs = [n_vals // 4, n_vals // 2, (3 * n_vals) // 4]
         labels = ["bad", "okay", "good", "great"]
@@ -125,18 +81,103 @@ def main():
         idxs = [n_vals // 5, (2 * n_vals) // 5, (3 * n_vals) // 5, (4 * n_vals) // 5]
         labels = ["bad", "okay", "good", "great", "amazing"]
         colors = ["red", "yellow", "green", "blue", "magenta"]
-    thresholds = [sorted_vals[i] for i in idxs]
-    # Show rating ranges
-    print(f"Rating ranges ({args.difficulty}):")
-    lower = min_val
-    for j, th in enumerate(thresholds):
-        print(f"  {j+1}) {labels[j]}: {lower:.2f} - {th:.2f}")
-        lower = th
-    # final segment
-    print(f"  {len(thresholds)+1}) {labels[-1]}: {lower:.2f} - {max_val:.2f}")
 
+    thresholds = [sorted_vals[i] for i in idxs]
+    return thresholds, labels, colors
+
+
+def load_and_filter_cards(
+    rarities: list[str],
+) -> list[dict]:
+    """Load card data, convert keys to float, and filter by rarity and exclude list."""
+    cards = load_card_data(MAGIC_SET)
+    convert_keys_to_float(cards)
+    exclude = load_exclude_list(MAGIC_SET)
+    # Filter by rarity and exclude list
+    quiz_cards = []
+    for r in rarities:
+        quiz_cards.extend(filter_cards_by_rarity(cards, r))
+    quiz_cards = [c for c in quiz_cards if c["Name"] not in exclude]
+    return quiz_cards
+
+
+def print_rating_ranges(thresholds, labels, difficulty):
+    """Print the rating ranges for each difficulty level."""
+    print(f"Difficulty: {difficulty.capitalize()}")
+    print("Rating ranges:")
+    for th, label in zip(thresholds, labels):
+        print(f"  {label}: < {th:.1f}")
+    print(f"  {labels[-1]}: >= {thresholds[-1]:.1f}")
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser(description="MTG Limited Trainer")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # ── quiz subcommand ──────────────────────────────────────────────────────
+    quiz_parser = subparsers.add_parser("quiz", help="Run a card rating quiz")
+    quiz_parser.add_argument(
+        "--rarities",
+        nargs="+",
+        default=QUIZ_RARITIES,
+        help="Card rarities to include (e.g. C U)",
+    )
+    quiz_parser.add_argument(
+        "--rating-key",
+        default=QUIZ_RATING_KEY,
+        help="Rating field to quiz on (e.g. 'OH WR')",
+    )
+    quiz_parser.add_argument(
+        "--num-questions",
+        type=int,
+        default=CARDS_IN_QUIZ,
+        help="Number of questions in the quiz",
+    )
+    quiz_parser.add_argument(
+        "--difficulty",
+        choices=["easy", "medium", "hard"],
+        default="medium",
+        help="Difficulty: easy=tertiles, medium=quartiles, hard=quintiles",
+    )
+
+    # ── analyze subcommand ───────────────────────────────────────────────────
+    analyze_parser = subparsers.add_parser(
+        "analyze", help="Fetch a 17Lands draft log and immediately analyze it"
+    )
+    analyze_parser.add_argument(
+        "draft_ids",
+        nargs="+",
+        metavar="DRAFT_ID",
+        help="One or more 17Lands draft IDs (from the URL).",
+    )
+    analyze_parser.add_argument(
+        "--rating-key",
+        default=DRAFT_RATING_KEY,
+        help=f"Rating column to rank picks by (default: '{DRAFT_RATING_KEY}')",
+    )
+
+    return parser.parse_args()
+
+
+def verify_resources():
+    # Ensure resources directory exists
+    resources_path = os.path.join(os.getcwd(), "resources", "sets", MAGIC_SET)
+    if not os.path.isdir(resources_path):
+        print(f"Error: Resource directory '{resources_path}' not found.")
+        print(
+            "Please follow the setup instructions in README.md to download the required data files."
+        )
+        sys.exit(1)
+
+
+def run_quiz(quiz_cards, thresholds, labels, colors, rating_key, num_questions):
     # Generate initial question set by sampling cards and attaching full option lists
-    questions = random.sample(quiz_cards, args.num_questions)
+    if num_questions > len(quiz_cards):
+        raise ValueError(
+            f"Requested {num_questions} quiz questions, but only "
+            f"{len(quiz_cards)} cards are available after filtering."
+        )
+    questions = random.sample(quiz_cards, num_questions)
     # Each entry: (card, thresholds, labels, colors)
     remaining = [
         (
@@ -155,7 +196,7 @@ def main():
             print(f"\n--- Round {round_num}: {len(remaining)} question(s) ---")
             wrong = []
             for i, (card, thr, lab, col) in enumerate(remaining, start=1):
-                correct, chosen = ask_question(card, i, thr, lab, col, args.rating_key)
+                correct, chosen = ask_question(card, i, thr, lab, col, rating_key)
                 if correct:
                     cprint("Correct", "green")
                 else:
@@ -198,6 +239,125 @@ def main():
                 random.shuffle(remaining)
                 continue
         break
+
+
+def run_fetch(args) -> None:
+    """Fetch one or more draft logs from 17Lands then analyze each one."""
+    import argparse as _argparse
+    from src.fetch_draft import process_draft
+
+    for draft_id in args.draft_ids:
+        process_draft(draft_id, DRAFT_RAW_OUTPUT_DIR)
+        draft_log_path = os.path.join(DRAFT_RAW_OUTPUT_DIR, f"{draft_id}.json")
+        if os.path.exists(draft_log_path):
+            analyze_args = _argparse.Namespace(
+                draft_log=draft_log_path,
+                rating_key=args.rating_key,
+            )
+            _run_analyze(analyze_args)
+        else:
+            print(f"[skip analysis] {draft_id} — no local file found")
+
+
+def _run_analyze(args) -> None:
+    """Load a draft log, run pick analysis, and write an HTML report."""
+    from collections import Counter
+
+    from src.draft_analysis import (
+        load_draft_log,
+        load_card_ratings_lookup,
+        evaluate_pick,
+        update_pool_state,
+        find_lane_signals,
+        summarize_pack,
+    )
+    from src.html_report import format_analysis_html
+    from src.data import find_most_recent_csv
+
+    draft = load_draft_log(args.draft_log)
+    set_code = draft["expansion"].lower()
+    try:
+        csv_path = find_most_recent_csv(set_code)
+    except FileNotFoundError:
+        print(f"No ratings CSV found for set '{draft['expansion']}' ({set_code}).")
+        print(f"Expected ratings files under: {DRAFT_RAW_OUTPUT_DIR}")
+        print(
+            "Please download/fetch the set ratings data first, then rerun draft analysis."
+        )
+        return
+
+    ratings = load_card_ratings_lookup(csv_path, args.rating_key)
+
+    evaluations = [evaluate_pick(p, ratings, args.rating_key) for p in draft["picks"]]
+
+    pool_state: Counter = Counter()
+    for ev in evaluations:
+        update_pool_state(pool_state, ev["chosen_meta"])
+
+    packs = sorted({e["pack"] for e in evaluations})
+    pack_summaries = [
+        summarize_pack([e for e in evaluations if e["pack"] == p]) for p in packs
+    ]
+
+    lane_signals = find_lane_signals(evaluations)
+
+    report = format_analysis_html(
+        draft, evaluations, pack_summaries, lane_signals, args.rating_key
+    )
+
+    os.makedirs(DRAFT_HTML_OUTPUT_DIR, exist_ok=True)
+    output_path = os.path.join(
+        DRAFT_HTML_OUTPUT_DIR, f"{draft['draft_id']}_analysis.html"
+    )
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(report)
+
+    print(f"Draft ID : {draft['draft_id']}")
+    print(
+        f"Set      : {draft['expansion']}  |  Format: {draft['format']}  |  Record: {draft['wins']}-{draft['losses']}"
+    )
+    print(f"Metric   : {args.rating_key}")
+    print(f"Report saved to: {output_path}")
+
+    bucket = os.environ.get("S3_BUCKET_NAME")
+    if not bucket:
+        print("[s3] S3_BUCKET_NAME not set — skipping upload")
+        return
+    import boto3
+
+    s3_key = f"drafts/html/{draft['draft_id']}_analysis.html"
+    session = boto3.session.Session()
+    region = session.region_name or "us-east-1"
+    session.client("s3").upload_file(
+        output_path,
+        bucket,
+        s3_key,
+        ExtraArgs={"ContentType": "text/html"},
+    )
+    public_url = f"https://{bucket}.s3.{region}.amazonaws.com/{s3_key}"
+    print(f"[s3] Uploaded: {public_url}")
+
+
+def main():
+    args = get_arguments()
+
+    if args.command == "quiz":
+        verify_resources()
+        quiz_cards = load_and_filter_cards(args.rarities)
+        thresholds, labels, colors = prepare_difficulty_thresholds(
+            quiz_cards, args.rating_key, args.difficulty
+        )
+        print_rating_ranges(thresholds, labels, args.difficulty)
+        run_quiz(
+            quiz_cards,
+            thresholds,
+            labels,
+            colors,
+            args.rating_key,
+            args.num_questions,
+        )
+    elif args.command == "analyze":
+        run_fetch(args)
 
 
 if __name__ == "__main__":

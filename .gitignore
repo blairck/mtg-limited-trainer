@@ -44,3 +44,9 @@ resources/
 .pytest_cache/
 local/
 .github/copilot-instructions.md
+
+# Scratch work
+.dev-notes/
+
+# Analysis output
+output/
