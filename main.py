@@ -10,6 +10,8 @@ from config import (
     MAGIC_SET,
     QUIZ_RARITIES,
     QUIZ_RATING_KEY,
+    DRAFT_RATING_KEY,
+    DRAFT_DATA_DIR,
     CARDS_IN_QUIZ,
     CARD_COLOR,
     CARD_RARITY,
@@ -118,32 +120,67 @@ def apply_threshold_rating(card, rating_key, thresholds, labels):
 
 
 def get_arguments():
-    parser = argparse.ArgumentParser(
-        description="Run a rating quiz on MTG cards with adjustable difficulty ranges"
-    )
-    parser.add_argument(
+    parser = argparse.ArgumentParser(description="MTG Limited Trainer")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # ── quiz subcommand ──────────────────────────────────────────────────────
+    quiz_parser = subparsers.add_parser("quiz", help="Run a card rating quiz")
+    quiz_parser.add_argument(
         "--rarities",
         nargs="+",
         default=QUIZ_RARITIES,
         help="Card rarities to include (e.g. C U)",
     )
-    parser.add_argument(
+    quiz_parser.add_argument(
         "--rating-key",
         default=QUIZ_RATING_KEY,
-        help="Rating field to quiz on (e.g. CARD_OHWR)",
+        help="Rating field to quiz on (e.g. 'OH WR')",
     )
-    parser.add_argument(
+    quiz_parser.add_argument(
         "--num-questions",
         type=int,
         default=CARDS_IN_QUIZ,
         help="Number of questions in the quiz",
     )
-    parser.add_argument(
+    quiz_parser.add_argument(
         "--difficulty",
         choices=["easy", "medium", "hard"],
         default="medium",
         help="Difficulty: easy=tertiles, medium=quartiles, hard=quintiles",
     )
+
+    # ── analyze subcommand ───────────────────────────────────────────────────
+    analyze_parser = subparsers.add_parser(
+        "analyze", help="Analyze a saved 17Lands draft log"
+    )
+    analyze_parser.add_argument(
+        "--draft-log",
+        required=True,
+        metavar="PATH",
+        help=f"Path to a draft JSON file (e.g. {DRAFT_DATA_DIR}/<id>.json)",
+    )
+    analyze_parser.add_argument(
+        "--rating-key",
+        default=DRAFT_RATING_KEY,
+        help="Rating column to rank picks by (default: 'OH WR')",
+    )
+
+    # ── fetch subcommand ─────────────────────────────────────────────────────
+    fetch_parser = subparsers.add_parser(
+        "fetch", help="Fetch a 17Lands draft log and immediately analyze it"
+    )
+    fetch_parser.add_argument(
+        "draft_ids",
+        nargs="+",
+        metavar="DRAFT_ID",
+        help="One or more 17Lands draft IDs (from the URL).",
+    )
+    fetch_parser.add_argument(
+        "--rating-key",
+        default=DRAFT_RATING_KEY,
+        help="Rating column to rank picks by (default: 'OH WR')",
+    )
+
     return parser.parse_args()
 
 
@@ -224,27 +261,97 @@ def run_quiz(quiz_cards, thresholds, labels, colors, rating_key, num_questions):
         break
 
 
+def run_fetch(args) -> None:
+    """Fetch one or more draft logs from 17Lands then analyze each one."""
+    import argparse as _argparse
+    from src.fetch_draft import process_draft
+
+    for draft_id in args.draft_ids:
+        process_draft(draft_id, DRAFT_DATA_DIR)
+        draft_log_path = os.path.join(DRAFT_DATA_DIR, f"{draft_id}.json")
+        if os.path.exists(draft_log_path):
+            analyze_args = _argparse.Namespace(
+                draft_log=draft_log_path,
+                rating_key=args.rating_key,
+            )
+            run_analyze(analyze_args)
+        else:
+            print(f"[skip analysis] {draft_id} — no local file found")
+
+
+def run_analyze(args) -> None:
+    """Load a draft log, run pick analysis, and write an HTML report."""
+    from collections import Counter
+
+    from src.draft_analysis import (
+        load_draft_log,
+        load_card_ratings_lookup,
+        evaluate_pick,
+        update_pool_state,
+        find_lane_signals,
+        summarize_pack,
+    )
+    from src.html_report import format_analysis_html
+    from src.data import find_most_recent_csv
+
+    draft = load_draft_log(args.draft_log)
+    set_code = draft["expansion"].lower()
+    csv_path = find_most_recent_csv(set_code)
+
+    ratings = load_card_ratings_lookup(csv_path, args.rating_key)
+
+    evaluations = [evaluate_pick(p, ratings, args.rating_key) for p in draft["picks"]]
+
+    pool_state: Counter = Counter()
+    for ev in evaluations:
+        update_pool_state(pool_state, ev["chosen_meta"])
+
+    packs = sorted({e["pack"] for e in evaluations})
+    pack_summaries = [
+        summarize_pack([e for e in evaluations if e["pack"] == p]) for p in packs
+    ]
+
+    lane_signals = find_lane_signals(evaluations)
+
+    report = format_analysis_html(
+        draft, evaluations, pack_summaries, lane_signals, args.rating_key
+    )
+
+    os.makedirs(DRAFT_DATA_DIR, exist_ok=True)
+    output_path = os.path.join(DRAFT_DATA_DIR, f"{draft['draft_id']}_analysis.html")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(report)
+
+    print(f"Draft ID : {draft['draft_id']}")
+    print(
+        f"Set      : {draft['expansion']}  |  Format: {draft['format']}  |  Record: {draft['wins']}-{draft['losses']}"
+    )
+    print(f"Metric   : {args.rating_key}")
+    print(f"Report saved to: {output_path}")
+
+
 def main():
     args = get_arguments()
 
-    verify_resources()
-
-    quiz_cards = load_and_filter_cards(args.rarities)
-
-    thresholds, labels, colors = prepare_difficulty_thresholds(
-        quiz_cards, args.rating_key, args.difficulty
-    )
-
-    print_rating_ranges(thresholds, labels, args.difficulty)
-
-    run_quiz(
-        quiz_cards,
-        thresholds,
-        labels,
-        colors,
-        args.rating_key,
-        args.num_questions,
-    )
+    if args.command == "quiz":
+        verify_resources()
+        quiz_cards = load_and_filter_cards(args.rarities)
+        thresholds, labels, colors = prepare_difficulty_thresholds(
+            quiz_cards, args.rating_key, args.difficulty
+        )
+        print_rating_ranges(thresholds, labels, args.difficulty)
+        run_quiz(
+            quiz_cards,
+            thresholds,
+            labels,
+            colors,
+            args.rating_key,
+            args.num_questions,
+        )
+    elif args.command == "analyze":
+        run_analyze(args)
+    elif args.command == "fetch":
+        run_fetch(args)
 
 
 if __name__ == "__main__":

@@ -74,6 +74,83 @@ This project uses Poetry for dependency management:
 - Poetry for package management
 - termcolor - Terminal text colorization
 
+## Draft Analysis
+
+After fetching a draft with `poetry run python main.py fetch <draft_id>`, a plain-text report is written to `resources/drafts/<draft_id>_analysis.txt`. You can also run analysis on an already-saved log:
+
+```bash
+poetry run python main.py analyze --draft-log resources/drafts/<draft_id>.json
+```
+
+Every section in the report is derived deterministically from your pick log and the 17Lands card-ratings CSV for the relevant set. No external calls are made at analysis time.
+
+### Report sections
+
+**OVERALL STATS**
+
+High-level accuracy metrics across the whole draft:
+
+- *Rated picks* — how many of your 42 picks had a 17Lands win-rate entry. Basics and very new cards may be unrated.
+- *Best card taken* — picks where the card you chose had the highest win rate of any available rated card.
+- *Top-3 pick* — picks where your choice ranked in the top 3 by win rate.
+- *Avg pick rank* — mean rank of your chosen card among rated options in each pack (lower is better; 1.0 is perfect).
+- *Avg gap* — mean difference in win rate between the best available card and your choice, in percentage points. Shown as a negative number; closer to 0 is better.
+
+**PICK CLASSIFICATION**
+
+Each pick is bucketed by how far it fell from the best-rated option:
+
+| Label | Gap from best |
+|---|---|
+| best | 0.0 pp — you took the highest-rated card |
+| defensible | ≤ 1.0 pp — close call, reasonable choice |
+| speculative | ≤ 3.0 pp — below optimal but not a large swing |
+| costly miss | > 3.0 pp — significant win-rate left on the table |
+| unrated | your pick had no 17Lands data |
+
+Thresholds are configured in `config.py` (`PICK_DEFENSIBLE_THRESHOLD`, `PICK_COSTLY_THRESHOLD`).
+
+**BIGGEST MISSES**
+
+The five picks with the largest win-rate gap. Format is:
+
+```
+P{pack}P{pick}  <card you took>  (<color>, <gap in pp>)  over  <best available card>
+```
+
+The gap is shown as a negative number (e.g. `-8.6pp`) representing how many percentage points of win rate you gave up relative to the best option in the pack.
+
+**PACK SUMMARIES**
+
+Per-pack rollup of the pick-classification counts and the average gap for that pack. Useful for spotting which pack had the most costly decisions.
+
+**DRAFT ARC**
+
+A rule-based narrative of how your lane developed:
+
+- *Early lane* — the two most-picked colors in your first five picks.
+- *Pivot window* — the earliest pack/pick where a strong late signal appeared for a color you weren't in, suggesting a potential pivot point. Requires at least three late signals in that color to fire.
+- *Final lane read* — the two most-picked colors across your entire pool.
+- *Summary* — a one-line sentence assembled from the above facts.
+
+**POOL / LANE TIMELINE**
+
+Snapshots of your picked color counts at four checkpoints: end of pack 1, mid pack 2 (pick 7), end of pack 2, and end of pack 3. "Likely lane" is simply the two most-represented colors at that point.
+
+**SIGNAL SUMMARY BY COLOR**
+
+Groups all late-pack lane signals (see below) by color and shows counts, the best win rate seen, and the most-repeated card names. The *Takeaway* line names the color with the most late signals — this is the color the table was most likely passing to you.
+
+**LANE SIGNALS**
+
+Individual strong cards (≥ 55.0% OH WR by default, configurable via `LANE_SIGNAL_WR_THRESHOLD` in `config.py`) that appeared in a pack at pick 6 or later and were not taken. A card showing up repeatedly at this position suggests its color is open at the table. The cutoff pick is configurable via `LANE_SIGNAL_PICK_CUTOFF`.
+
+**FULL PICK LOG**
+
+One line per pick showing your chosen card, its win rate, the best-rated alternative, and the gap. The gap column is negative for any pick that wasn't the best option and `0.0pp` for picks where you took the best card.
+
+---
+
 ## Module Descriptions
 
 ### `modules/config.py`
