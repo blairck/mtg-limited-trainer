@@ -28,6 +28,7 @@ resources/
 ```bash
 poetry run python main.py quiz
 poetry run python main.py analyze <draft_id>
+poetry run python main.py top-cards --set="msh" --rarities=common
 ```
 
 ### Quiz mode
