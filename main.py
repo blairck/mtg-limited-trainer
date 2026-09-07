@@ -4,6 +4,7 @@ MTG Limited Trainer - Card Rating Quiz with difficulty selection
 from src.display import format_card_line, get_color_code, cprint
 from src.cards import filter_cards_by_rarity
 from src.data import load_card_data, load_exclude_list, convert_keys_to_float
+from src.top_cards import get_top_cards, format_output
 from config import (
     MAGIC_SET,
     QUIZ_RARITIES,
@@ -154,6 +155,29 @@ def get_arguments():
         "--rating-key",
         default=DRAFT_RATING_KEY,
         help=f"Rating column to rank picks by (default: '{DRAFT_RATING_KEY}')",
+    )
+
+    # ── top-cards subcommand ─────────────────────────────────────────────────
+    top_cards_parser = subparsers.add_parser(
+        "top-cards",
+        help="Find the most valuable cards in a set by cumulative value threshold",
+    )
+    top_cards_parser.add_argument(
+        "--set",
+        default=MAGIC_SET,
+        help="Magic set code (e.g., 'sos', 'dft')",
+    )
+    top_cards_parser.add_argument(
+        "--rarities",
+        nargs="+",
+        default=["common", "uncommon", "rare", "mythic"],
+        help="Rarity levels to include (e.g. common uncommon rare mythic)",
+    )
+    top_cards_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=25.0,
+        help="Cumulative value threshold as a percentage (0-100, default: 50)",
     )
 
     return parser.parse_args()
@@ -338,6 +362,34 @@ def _run_analyze(args) -> None:
     print(f"[s3] Uploaded: {public_url}")
 
 
+def run_top_cards(args) -> None:
+    """Find and display the top valuable cards in a set by cumulative threshold."""
+    try:
+        selected_cards, total_value, total_considered = get_top_cards(
+            args.set, args.rarities, args.threshold
+        )
+
+        # Display results
+        output = format_output(
+            selected_cards, total_value, args.threshold, total_considered
+        )
+        print(output)
+
+        # Print summary statistics
+        print(
+            f"\nSelected {len(selected_cards)} card(s) to reach {args.threshold}% threshold"
+        )
+        print(f"Total value: ${total_value:.2f}")
+        print(f"Rarities included: {', '.join(args.rarities)}")
+
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error fetching cards from Scryfall: {e}")
+        sys.exit(1)
+
+
 def main():
     args = get_arguments()
 
@@ -358,6 +410,8 @@ def main():
         )
     elif args.command == "analyze":
         run_fetch(args)
+    elif args.command == "top-cards":
+        run_top_cards(args)
 
 
 if __name__ == "__main__":
