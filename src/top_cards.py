@@ -32,7 +32,7 @@ def fetch_cards_from_scryfall(set_code: str) -> List[Dict[str, any]]:
     """
     headers = {"User-Agent": "MTG-Limited-Trainer/1.0 (+https://github.com/)"}
 
-    url = f"https://api.scryfall.com/cards/search?q=set:{set_code}&unique=prints"
+    url = f"https://api.scryfall.com/cards/search?q=set={set_code}&order=set"
     all_cards = []
 
     while url:
@@ -44,7 +44,14 @@ def fetch_cards_from_scryfall(set_code: str) -> List[Dict[str, any]]:
         # Handle pagination
         url = data.get("next_page")
 
-    return all_cards
+    seen = {}
+    filtered_cards = []
+    for card in all_cards:
+        if card["name"] not in seen:
+            seen[card["name"]] = True
+            filtered_cards.append(card)
+
+    return filtered_cards
 
 
 def filter_cards_by_rarity(
