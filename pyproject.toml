@@ -1,5 +1,5 @@
 [project]
-name = "mtg-limited-trainer"
+name = "mtg-card-tools"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mtg-limited-trainer = "mtg_limited_trainer:main"
+mtg-card-tools = "mtg_card_tools:main"
 
 [build-system]
 requires = ["uv_build>=0.12.10,<0.13.0"]

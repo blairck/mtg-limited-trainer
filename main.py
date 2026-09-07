@@ -25,6 +25,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+
+
 def ask_question(
     card: dict,
     idx: int,
@@ -116,7 +118,7 @@ def get_arguments():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # ── quiz subcommand ──────────────────────────────────────────────────────
-    quiz_parser = subparsers.add_parser("quiz", help="Run a card rating quiz")
+    quiz_parser = subparsers.add_parser("play/quiz", help="Run a card rating quiz")
     quiz_parser.add_argument(
         "--rarities",
         nargs="+",
@@ -143,7 +145,7 @@ def get_arguments():
 
     # ── analyze subcommand ───────────────────────────────────────────────────
     analyze_parser = subparsers.add_parser(
-        "analyze", help="Fetch a 17Lands draft log and immediately analyze it"
+        "play/analyze", help="Fetch a 17Lands draft log and immediately analyze it"
     )
     analyze_parser.add_argument(
         "draft_ids",
@@ -159,7 +161,7 @@ def get_arguments():
 
     # ── top-cards subcommand ─────────────────────────────────────────────────
     top_cards_parser = subparsers.add_parser(
-        "top-cards",
+        "collection/top-cards",
         help="Find the most valuable cards in a set by cumulative value threshold",
     )
     top_cards_parser.add_argument(
@@ -170,14 +172,14 @@ def get_arguments():
     top_cards_parser.add_argument(
         "--rarities",
         nargs="+",
-        default=["common", "uncommon", "rare", "mythic"],
-        help="Rarity levels to include (e.g. common uncommon rare mythic)",
+        default=["C"],
+        help="Card rarities to include (e.g. C U)",
     )
     top_cards_parser.add_argument(
         "--threshold",
         type=float,
         default=25.0,
-        help="Cumulative value threshold as a percentage (0-100, default: 50)",
+        help="Cumulative value threshold as a percentage (0-100, default: 25)",
     )
 
     return parser.parse_args()
@@ -364,14 +366,27 @@ def _run_analyze(args) -> None:
 
 def run_top_cards(args) -> None:
     """Find and display the top valuable cards in a set by cumulative threshold."""
+    rarities = []
+    for rarity in args.rarities:
+        if rarity.lower() in ("c", "common") and "common" not in rarities:
+            rarities.append("common")
+        elif rarity.lower() in ("u", "uncommon") and "uncommon" not in rarities:
+            rarities.append("uncommon")
+        elif rarity.lower() in ("r", "rare") and "rare" not in rarities:
+            rarities.append("rare")
+        elif rarity.lower() in ("m", "mythic") and "mythic" not in rarities:
+            rarities.append("mythic")
+        else:
+            print(f"Unknown rarity {rarity}, skipping")
+
     try:
-        selected_cards, total_value, total_considered = get_top_cards(
-            args.set, args.rarities, args.threshold
+        selected_cards, cumulative_value, total_value, total_considered = get_top_cards(
+            args.set, rarities, args.threshold
         )
 
         # Display results
         output = format_output(
-            selected_cards, total_value, args.threshold, total_considered
+            selected_cards, cumulative_value, args.threshold, total_considered
         )
         print(output)
 
@@ -379,8 +394,8 @@ def run_top_cards(args) -> None:
         print(
             f"\nSelected {len(selected_cards)} card(s) to reach {args.threshold}% threshold"
         )
-        print(f"Total value: ${total_value:.2f}")
-        print(f"Rarities included: {', '.join(args.rarities)}")
+        print(f"Selected value: ${cumulative_value:.2f}, Total value: ${total_value:0.2f}")
+        print(f"Rarities included: {', '.join(rarities)}")
 
     except ValueError as e:
         print(f"Error: {e}")
@@ -393,7 +408,7 @@ def run_top_cards(args) -> None:
 def main():
     args = get_arguments()
 
-    if args.command == "quiz":
+    if args.command == "play/quiz":
         verify_resources()
         quiz_cards = load_and_filter_cards(args.rarities)
         thresholds, labels, colors = prepare_difficulty_thresholds(
@@ -408,9 +423,9 @@ def main():
             args.rating_key,
             args.num_questions,
         )
-    elif args.command == "analyze":
+    elif args.command == "play/analyze":
         run_fetch(args)
-    elif args.command == "top-cards":
+    elif args.command == "collection/top-cards":
         run_top_cards(args)
 
 
