@@ -125,7 +125,12 @@ class TestGetColorFromCard:
     def test_multicolor_card(self):
         """Test multicolor card (returns first color)."""
         card = {"colors": ["W", "U"]}
-        assert get_color_from_card(card) == "W"
+        assert get_color_from_card(card) == "M"
+
+    def test_unknown_card(self):
+        """Test unknown card color."""
+        card = {"colors": ["Q"]}
+        assert get_color_from_card(card) == "O"
 
     def test_missing_colors(self):
         """Test card without colors key."""
@@ -197,25 +202,25 @@ class TestFindTopCardsByThreshold:
 
     def test_50_percent_threshold(self, sample_cards):
         """Test finding top cards at 50% threshold."""
-        selected, total_value = find_top_cards_by_threshold(sample_cards, 50.0)
+        selected, cumulative_value, _ = find_top_cards_by_threshold(sample_cards, 50.0)
 
         # Total value is 1.30, 50% is 0.65
         # Cards sorted by price: 0.40, 0.30, 0.25, 0.20, 0.10, 0.05
         # Selected: 0.40 + 0.30 = 0.70 (meets 0.65 threshold)
         assert len(selected) == 2
-        assert abs(total_value - 0.70) < 0.01
+        assert abs(cumulative_value - 0.70) < 0.01
 
     def test_100_percent_threshold(self, sample_cards):
         """Test 100% threshold selects all cards."""
-        selected, total_value = find_top_cards_by_threshold(sample_cards, 100.0)
+        selected, cumulative_value, _ = find_top_cards_by_threshold(sample_cards, 100.0)
         assert len(selected) == len(sample_cards)
-        assert abs(total_value - 1.30) < 0.01
+        assert abs(cumulative_value - 1.30) < 0.01
 
     def test_0_percent_threshold(self, sample_cards):
         """Test 0% threshold selects just the highest card."""
-        selected, total_value = find_top_cards_by_threshold(sample_cards, 0.0)
+        selected, cumulative_value, _ = find_top_cards_by_threshold(sample_cards, 0.0)
         assert len(selected) == 1
-        assert abs(total_value - 0.40) < 0.01
+        assert abs(cumulative_value - 0.40) < 0.01
 
     def test_threshold_no_priced_cards(self):
         """Test with cards that have no prices."""
@@ -259,10 +264,10 @@ class TestGetTopCards:
         """Test successful top cards retrieval."""
         mock_fetch.return_value = sample_cards
 
-        selected, total, count = get_top_cards("sos", ["common"], 50.0)
+        selected, cumulative, _, count = get_top_cards("sos", ["common"], 50.0)
 
         assert len(selected) > 0
-        assert total > 0
+        assert cumulative > 0
         assert count > 0
         mock_fetch.assert_called_once_with("sos")
 

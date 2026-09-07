@@ -1,10 +1,10 @@
-# MTG Limited Trainer
+# MTG Card Tools
 
-MTG Limited Trainer is a command-line project for practicing limited card evaluation and reviewing completed drafts against 17Lands card-rating data.
+MTG Card Tools is a collection of tools for playing and collecting Magic: The Gathering cards.
 
 ## Setup
 
-This repository is designed to be set up in a devcontainer, and run locally with Poetry.
+This repository is designed to be set up to run locally with `uv`.
 
 1. Open the repository in VS Code and create the devcontainer from `.devcontainer/devcontainer.json` if prompted.
 2. Add 17Lands card-rating CSVs under `resources/sets/<set>/` using the naming pattern `card-ratings-YYYY-MM-DD.csv`.
@@ -26,9 +26,9 @@ resources/
 `main.py` exposes subcommands. Run one of these:
 
 ```bash
-poetry run python main.py quiz
-poetry run python main.py analyze <draft_id>
-poetry run python main.py top-cards --set="msh" --rarities=common
+uv run main.py quiz
+uv run main.py analyze <draft_id>
+uv run main.py top-cards --set="msh" --rarities=common
 ```
 
 ### Quiz mode
@@ -38,9 +38,9 @@ poetry run python main.py top-cards --set="msh" --rarities=common
 Common options:
 
 ```bash
-poetry run python main.py quiz --difficulty easy
-poetry run python main.py quiz --difficulty hard --num-questions 20
-poetry run python main.py quiz --rarities C U R --rating-key "GIH WR"
+uv run main.py quiz --difficulty easy
+uv run main.py quiz --difficulty hard --num-questions 20
+uv run main.py quiz --rarities C U R --rating-key "GIH WR"
 ```
 
 Supported quiz arguments:
@@ -55,8 +55,8 @@ Supported quiz arguments:
 `analyze` fetches one or more draft logs from 17Lands, saves the raw JSON locally, then generates an HTML report for each draft.
 
 ```bash
-poetry run python main.py analyze b030c150a65c4491b98ab3b041f3f8df
-poetry run python main.py analyze <draft_id_1> <draft_id_2> --rating-key "GIH WR"
+uv run main.py analyze b030c150a65c4491b98ab3b041f3f8df
+uv run main.py analyze <draft_id_1> <draft_id_2> --rating-key "GIH WR"
 ```
 
 Outputs:
@@ -69,7 +69,7 @@ If `S3_BUCKET_NAME` is set in the environment, the generated HTML report is also
 For fetch-only workflows, you can also run the helper module directly:
 
 ```bash
-poetry run python -m src.fetch_draft <draft_id>
+uv run -m src.fetch_draft <draft_id>
 ```
 
 ## Configuration
@@ -123,7 +123,7 @@ poetry shell
 ## Project Structure
 
 ```text
-mtg-limited-trainer/
+mtg-card-tools/
 ├── main.py
 ├── config.py
 ├── src/

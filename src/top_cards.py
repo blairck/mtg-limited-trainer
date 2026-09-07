@@ -127,15 +127,15 @@ def get_color_from_card(card: Dict[str, any]) -> str:
     """
     colors = card.get("colors", [])
 
-    if not colors:
+    if len(colors) == 0:
         return "L"  # Colorless/Lands
-
-    # Return the first color if multiple
-    color_map = {"W": "W", "U": "U", "B": "B", "R": "R", "G": "G"}
-    first_color = colors[0]
-
-    return color_map.get(first_color, "L")
-
+    elif len(colors) == 1:
+        color_map = {"W": "W", "U": "U", "B": "B", "R": "R", "G": "G"}
+        try:
+            return color_map[colors[0]]
+        except KeyError:
+            return "O" # Unknown color
+    return "M" # Multicolor
 
 def find_top_cards_by_threshold(
     cards: List[Dict[str, any]], threshold_percent: float
@@ -148,7 +148,8 @@ def find_top_cards_by_threshold(
         threshold_percent: Target percentage (0-100) of total value to reach
 
     Returns:
-        Tuple of (selected cards sorted by price, total value of selected cards)
+        Tuple of (selected cards sorted by price, total value of selected cards, and overall cards 
+        value)
     """
     # Filter out cards with no price
     priced_cards = [c for c in cards if get_card_price(c) > 0]
@@ -179,12 +180,13 @@ def find_top_cards_by_threshold(
         if cumulative_value >= threshold_value:
             break
 
-    return selected_cards, cumulative_value
+    return selected_cards, cumulative_value, total_value
 
 
 def sort_by_color(cards: List[Dict[str, any]]) -> List[Dict[str, any]]:
     """
-    Sort cards by color in standard MTG order: W, U, B, R, G, L (colorless/lands).
+    Sort cards by color in standard MTG order: W, U, B, R, G, L (colorless/lands),
+        Multicolor, and Other.
 
     Args:
         cards: List of card dictionaries
@@ -192,7 +194,7 @@ def sort_by_color(cards: List[Dict[str, any]]) -> List[Dict[str, any]]:
     Returns:
         Sorted list of cards
     """
-    color_order = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4, "L": 5}
+    color_order = {"W": 0, "U": 1, "B": 2, "R": 3, "G": 4, "L": 5, "M": 6, "O": 7}
 
     return sorted(
         cards,
@@ -234,7 +236,9 @@ def format_output(
         "B": "Black",
         "R": "Red",
         "G": "Green",
+        "M": "Multicolor",
         "L": "Colorless/Lands",
+        "O": "Other",
     }
 
     for card in sorted_cards:
@@ -243,7 +247,7 @@ def format_output(
         if color != current_color:
             if current_color is not None:
                 output.append("")
-            output.append(f"\n{color_names.get(color, color)}:")
+            output.append(f"{color_names.get(color, color)}:")
             current_color = color
 
         price = get_card_price(card)
@@ -273,7 +277,8 @@ def get_top_cards(
         threshold_percent: Target percentage (0-100) of total value
 
     Returns:
-        Tuple of (selected cards sorted by color, total cumulative value, total cards considered)
+        Tuple of (selected cards sorted by color, total cumulative value, overall card value, and
+        total cards considered)
 
     Raises:
         requests.RequestException: If API fetch fails
@@ -303,11 +308,11 @@ def get_top_cards(
     total_cards_considered = len(filtered_cards)
 
     # Find cards meeting threshold
-    selected_cards, total_value = find_top_cards_by_threshold(
+    selected_cards, threshold_value, total_value = find_top_cards_by_threshold(
         filtered_cards, threshold_percent
     )
 
     # Sort by color
     sorted_cards = sort_by_color(selected_cards)
 
-    return sorted_cards, total_value, total_cards_considered
+    return sorted_cards, threshold_value, total_value, total_cards_considered
